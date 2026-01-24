@@ -392,7 +392,7 @@ class AdminStatsView(discord.ui.View):
         # Смени пароль здесь!
         self.admin_password = "cartel" 
 
-    @discord.ui.button(label="Вся статистика", style=discord.ButtonStyle.green, custom_id="stats_all", emoji="📊")
+    @discord.ui.button(label="Вся статистика", style=discord.ButtonStyle.green, custom_id="stats_all", emoji="<:stats:1463129091451650069>")
     async def show_all_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
         stats = load_stats()
         if not stats:
@@ -407,7 +407,7 @@ class AdminStatsView(discord.ui.View):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="По модераторам", style=discord.ButtonStyle.blurple, custom_id="stats_by_mod", emoji="👤")
+    @discord.ui.button(label="По модераторам", style=discord.ButtonStyle.blurple, custom_id="stats_by_mod", emoji="<:stats:1464710641817223410>")
     async def show_mod_select(self, interaction: discord.Interaction, button: discord.ui.Button):
         stats = load_stats()
         if not stats:
@@ -462,7 +462,7 @@ class AdminStatsView(discord.ui.View):
         file = discord.File(STATS_FILE, filename=f"backup_stats_{datetime.now().date()}.json")
         await interaction.response.send_message("Копия базы данных подготовлена:", file=file, ephemeral=True)
 
-    @discord.ui.button(label="Сброс БД", style=discord.ButtonStyle.danger, custom_id="stats_reset_secure", emoji="⚠️")
+    @discord.ui.button(label="Сброс БД", style=discord.ButtonStyle.danger, custom_id="stats_reset_secure", emoji="<:error:1463122517102297214>")
     async def secure_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not interaction.user.guild_permissions.administrator:
             return await interaction.response.send_message("Только гл. администратор может сбросить базу.", ephemeral=True)
@@ -531,16 +531,15 @@ class TicketsCog(commands.Cog):
         try:
             await channel.purge(limit=10)
             embed = discord.Embed(
-                title="🛡️ Админ-Панель Поддержки",
+                title="<:sheld:1464708871703761061> Админ-Панель Поддержки",
                 description=(
                     "Ниже представлены инструменты для контроля работы модераторов.\n\n"
-                    "• **Вся статистика**: Общий рейтинг.\n"
-                    "• **По модераторам**: Личный отчет.\n"
+                    "<:sheld:1463129091451650069> **Вся статистика**: Общий рейтинг.\n"
+                    "<:sheld:1464710641817223410> **По модераторам**: Личный отчет.\n"
                     "Возможность удалить базу данных и скачать её"
                 ),
-                color=discord.Color.gold()
+                color=discord.Color.from_rgb(54, 57, 63)
             )
-            # ВЫЗОВ БЕЗ АРГУМЕНТОВ
             await channel.send(embed=embed, view=AdminStatsView())
             print("[УСПЕХ] Админ-панель отправлена.")
         except Exception as e:

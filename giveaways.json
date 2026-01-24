@@ -1,19 +1,13 @@
 {
     "current_giveaway": {
-        "description": "раываыв",
-        "prize": "аываыв",
-        "sponsor": "аыва",
+        "description": "пвап",
+        "prize": "пва",
+        "sponsor": "пвавпа",
         "winner_count": 1,
-        "end_time": "2026-01-19 00:02",
-        "participants": [
-            593357511210565652
-        ],
-        "status": "finished",
+        "end_time": "2026-01-25 20:20",
+        "participants": [],
+        "status": "active",
         "fixed_message_id": 1457138919291490594,
-        "id": "giveaway_1768770015",
-        "winners": [
-            593357511210565652
-        ],
-        "finished_at": "2026-01-18T21:02:40.081122+00:00"
+        "id": "giveaway_1769286179"
     }
 }

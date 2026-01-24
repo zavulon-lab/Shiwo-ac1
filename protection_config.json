@@ -1,7 +1,7 @@
 {
     "events": {
         "channel_delete": {
-            "action": "warn",
+            "action": "none",
             "limit": 1
         },
         "channel_create": {

@@ -26,20 +26,18 @@ class WelcomeCog(commands.Cog):
         ticket_channel = self.bot.get_channel(TICKET_CHANNEL_ID)
 
         embed = discord.Embed(
-            title="```Приветствуем в Shiwo Scanner```",
             description=(
+                "# <:hello:1464703360132448501> Приветствуем в Shiwo ac\n\n"
                 f"{member.mention}, мы рады вас видеть!\n\n"
-                "Shiwo- это мощный сканер разработанный для того чтобы дать вам:\n"
-                "**скорость, точность и надёжность.**\n\n"
-                "Загляните в наши основные каналы "
             ),
+
             color=discord.Color.from_rgb(54, 57, 63),
             timestamp=datetime.now(timezone.utc)
         )
 
         embed.set_thumbnail(url=member.display_avatar.url)
         embed.add_field(
-            name="Правила сервера",
+            name="<:rules:1464703359033282703> Правила сервера",
             value=(
                 f"Пожалуйста прочитайте {rules_channel.mention}\n"
                 "чтобы сохранить комьюнити безопасным и дружелюбным."
@@ -50,7 +48,7 @@ class WelcomeCog(commands.Cog):
         )
 
         embed.add_field(
-            name="Цены и оплата",
+            name="<:price:1464703357410082836> Цены и оплата",
             value=(
                 f"Посмотрите {purchase_channel.mention}\n"
                 "для того чтобы ознакомиться с нашим предложением."
@@ -61,7 +59,7 @@ class WelcomeCog(commands.Cog):
         )
 
         embed.add_field(
-            name="Нужна помощь?",
+            name="<:help:1464703355342291015> Нужна помощь?",
             value=(
                 f"Откройте тикет {ticket_channel.mention} и наша команда пошожет вам."
                 if ticket_channel else

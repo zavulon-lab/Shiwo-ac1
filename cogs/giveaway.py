@@ -46,12 +46,12 @@ class GiveawayEditModal(Modal, title="Настройка розыгрыша"):
         preview_embed = discord.Embed(
             title="Предпросмотр розыгрыша",
             description=temp_data["description"],
-            color=Color.gold()
+            color=discord.Color.from_rgb(54, 57, 63)
         )
-        preview_embed.add_field(name="Приз", value=temp_data["prize"], inline=True)
-        preview_embed.add_field(name="Спонсор", value=temp_data["sponsor"], inline=True)
-        preview_embed.add_field(name="Окончание", value=temp_data["end_time"], inline=False)
-        preview_embed.add_field(name="Участников", value=str(len(temp_data["participants"])), inline=False)
+        preview_embed.add_field(name="<:present:1464712819755978904> Приз", value=temp_data["prize"], inline=True)
+        preview_embed.add_field(name="<:present:1464712817671409806> Спонсор", value=temp_data["sponsor"], inline=True)
+        preview_embed.add_field(name="<:present:1464700439407890656> Окончание", value=temp_data["end_time"], inline=False)
+        preview_embed.add_field(name="<:present:1464712815968387072> Участников", value=str(len(temp_data["participants"])), inline=False)
 
         view = GiveawayPreviewView(temp_data)
         await interaction.response.send_message(embed=preview_embed, view=view, ephemeral=True)
@@ -138,34 +138,30 @@ class GiveawayPreviewView(View):
         super().__init__(timeout=300)
         self.temp_data = temp_data
 
-    @discord.ui.button(label="Подтвердить", style=ButtonStyle.green)
+    @discord.ui.button(label="Подтвердить", emoji="<:apr:1463263885887799533>", style=ButtonStyle.green)
     async def confirm(self, interaction: Interaction, button: Button):
-        print(f"Кнопка 'Подтвердить' нажата пользователем: {interaction.user.id}")
         try:
-            
+            # Загружаем старые данные
             old_data = load_giveaway_data()
-              
             new_data = self.temp_data.copy()
             
             if old_data and "fixed_message_id" in old_data:
                 new_data["fixed_message_id"] = old_data["fixed_message_id"]
 
-            
+            # Подготавливаем новые данные
             new_data["status"] = "active"
             new_data["id"] = "giveaway_" + str(int(time.time()))
-            new_data["participants"] = []  
-            
-            
+            new_data["participants"] = []
             new_data.pop("winners", None)
             new_data.pop("preselected_winners", None)
             new_data.pop("preselected_by", None)
             new_data.pop("preselected_at", None)
 
-           
+            # Сохраняем
             save_giveaway_data(new_data)
             print(f"Данные нового розыгрыша {new_data['id']} сохранены.")
 
-            
+            # Логируем
             log_channel = interaction.guild.get_channel(GIVEAWAY_LOG_CHANNEL_ID)
             if log_channel:
                 log_embed = discord.Embed(
@@ -183,10 +179,15 @@ class GiveawayPreviewView(View):
                 log_embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
                 await log_channel.send(embed=log_embed)
 
-            
+            # Обновляем эмбед
             await update_user_giveaway_embed(interaction.guild)
 
-            await interaction.response.send_message("Розыгрыш успешно запущен! Старые данные удалены.", ephemeral=True)
+            # Ответ пользователю
+            embed = discord.Embed(
+                description="Розыгрыш успешно запущен! Старые данные удалены.",
+                color=discord.Color.green()
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             self.stop()
 
         except Exception as e:
@@ -196,10 +197,12 @@ class GiveawayPreviewView(View):
             else:
                 await interaction.followup.send(f"Ошибка: {e}", ephemeral=True)
 
-    @discord.ui.button(label="Отредактировать заново", style=ButtonStyle.grey)
+    @discord.ui.button(label="Отредактировать заново", emoji="<:edit:1464714103078780989>", style=ButtonStyle.grey)
     async def edit_again(self, interaction: Interaction, button: Button):
         await interaction.response.send_modal(GiveawayEditModal())
         self.stop()
+
+
 
 
 class GiveawayUserView(View):
@@ -263,14 +266,14 @@ class GiveawayAdminView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Редактировать розыгрыш", style=ButtonStyle.primary, custom_id="giveaway_edit")
+    @discord.ui.button(label="Редактировать розыгрыш", emoji="<:edit:1464714103078780989>", style=ButtonStyle.primary, custom_id="giveaway_edit")
     async def edit_giveaway(self, interaction: Interaction, button: Button):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("Только администраторы.", ephemeral=True)
             return
         await interaction.response.send_modal(GiveawayEditModal())
 
-    @discord.ui.button(label="Выбрать победителя", style=ButtonStyle.success, custom_id="giveaway_select_winner")
+    @discord.ui.button(label="Выбрать победителя", emoji="<:chz:1464714101711310860>", style=ButtonStyle.success, custom_id="giveaway_select_winner")
     async def select_winner(self, interaction: Interaction, button: Button):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("Только администраторы.", ephemeral=True)
@@ -282,6 +285,7 @@ class GiveawayAdminView(View):
             return
 
         await interaction.response.send_modal(WinnerSelectModal())
+
 
 
 async def update_user_giveaway_embed(guild: Guild):
@@ -302,24 +306,24 @@ async def update_user_giveaway_embed(guild: Guild):
             color=discord.Color.from_rgb(54, 57, 63) 
         )
         
-        embed.add_field(name="Приз", value=f"**```{data.get('prize')}```**", inline=False)
+        embed.add_field(name="<:emoji1:1464712819755978904> Приз", value=f"**```{data.get('prize')}```**", inline=False)
         
         info_value = (
-            f"**Спонсор:** `{data.get('sponsor')}`\n"
-            f"**Победителей:** `{data.get('winner_count', 1)}`"
+            f"<:emoji3:1464712817671409806> **Спонсор:** `{data.get('sponsor')}`\n"
+            f"<:emoji4:1464725149549985792> **Победителей:** `{data.get('winner_count', 1)}`"
         )
-        embed.add_field(name="", value=info_value, inline=True)
+        embed.add_field(name="Информация", value=info_value, inline=True)
         
-        # Таймер и участники
-        embed.add_field(name="", value=(
-            f"**Участников:** `{len(data.get('participants', []))}`\n"
-            f"**Завершение:** <t:{int(datetime.strptime(data['end_time'], '%Y-%m-%d %H:%M').timestamp())}:R>"
+        embed.add_field(name="Статус", value=(
+            f"<:emoji7:1464712815968387072> **Участников:** `{len(data.get('participants', []))}`\n"
+            f"<:emoji8:1464700439407890656> **Завершение:** <t:{int(datetime.strptime(data['end_time'], '%Y-%m-%d %H:%M').timestamp())}:R>"
         ), inline=True)
         embed.set_footer(text="Нажми на кнопку ниже, чтобы испытать удачу!")
         view = GiveawayUserView()
 
         if channel.guild.icon:
             embed.set_thumbnail(url=channel.guild.icon.url)
+
     else:
 
         embed = discord.Embed(title="```РОЗЫГРЫШ ЗАВЕРШЕН```", color=discord.Color.from_rgb(54, 57, 63))
@@ -327,7 +331,7 @@ async def update_user_giveaway_embed(guild: Guild):
         
         if data and data.get("winners"):
             mentions = [f"<@{wid}>" for wid in data["winners"]]
-            embed.add_field(name="Победители", value="\n".join(mentions) if mentions else "Не определены", inline=False)
+            embed.add_field(name="<:emoji4:1464725149549985792> Победители", value="\n".join(mentions) if mentions else "Не определены", inline=False)
         if channel.guild.icon:
             embed.set_thumbnail(url=channel.guild.icon.url)
         embed.set_footer(text="Следите за новыми анонсами!")

@@ -624,7 +624,7 @@ class ClientsPanelCog(commands.Cog):
 
     async def send_new_panel(self, channel: discord.TextChannel):
         embed = discord.Embed(
-            title="Возможно интересующие вас вопросы",
+            title="<:ask:1464703355342291015> Возможно интересующие вас вопросы",
             description=(
                 "Выбери интересующую тему ниже\n\n"
                 "Все решения проверены на актуальность и безопасность.\n"
@@ -636,7 +636,7 @@ class ClientsPanelCog(commands.Cog):
         if channel.guild.icon:
             embed.set_thumbnail(url=channel.guild.icon.url)
 
-        embed.set_footer(text="Shiwo ac • faq")
+        embed.set_footer(text="Shiwo ac • FAQ")
 
         view = ClientSelectView()
         try:

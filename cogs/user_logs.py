@@ -33,17 +33,31 @@ class UserLogsCog(commands.Cog):
 
         ts = int(time.time())
         embed = discord.Embed(
-            title="Сообщение удалено",
-            description=f"Автор: {message.author} ({message.author.id})\nКанал: {message.channel.mention}\nВремя события: <t:{ts}:R>",
-            color=discord.Color.red(),
-            timestamp=datetime.now(timezone.utc)
+            description=f"<:delete:1463115110980780198> **Сообщение удалено**",
+            color=discord.Color.red()
         )
+        
+        info_value = (
+            f"Участник: {message.author.mention}\n"
+            f"<:link:1463122462995648662> login: {message.author.name}\n"
+            f"<:id_card:1463122452790902912> ID: {message.author.id}"
+        )
+        embed.add_field(name="Информация", value=info_value, inline=True)
+        
+        channel_value = (
+            f"<:link:1463122462995648662> Канал: {message.channel.mention}\n"
+            f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+        )
+        embed.add_field(name="Детали", value=channel_value, inline=True)
         embed.add_field(name="Содержимое", value=message.content or "Контент отсутствует", inline=False)
+        
         if message.attachments:
             embed.add_field(name="Вложения", value="\n".join(a.url for a in message.attachments), inline=False)
         
+        embed.set_thumbnail(url=message.author.display_avatar.url)
         embed.set_footer(text=f"User ID: {message.author.id}")
         await self.send_log(LOG_MESSAGES_CHANNEL_ID, embed)
+
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
@@ -52,16 +66,29 @@ class UserLogsCog(commands.Cog):
 
         ts = int(time.time())
         embed = discord.Embed(
-            title="Сообщение изменено",
-            description=f"Автор: {before.author} ({before.author.id})\nКанал: {before.channel.mention}\nВремя события: <t:{ts}:R>",
-            color=discord.Color.from_rgb(54, 57, 63),
-            timestamp=datetime.now(timezone.utc)
+            description=f"<:edit:1464714103078780989> **Сообщение изменено**",
+            color=discord.Color.from_rgb(54, 57, 63)
         )
-        embed.add_field(name="Исходный текст", value=before.content or "Пусто", inline=False)
-        embed.add_field(name="Новый текст", value=after.content or "Пусто", inline=False)
         
+        info_value = (
+            f"Участник: {before.author.mention}\n"
+            f"<:link:1463122462995648662> login: {before.author.name}\n"
+            f"<:id_card:1463122452790902912> ID: {before.author.id}"
+        )
+        embed.add_field(name="Информация", value=info_value, inline=True)
+        
+        channel_value = (
+            f"<:link:1463122462995648662> Канал: {before.channel.mention}\n"
+            f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+        )
+        embed.add_field(name="Детали", value=channel_value, inline=True)
+        embed.add_field(name="Было", value=before.content or "Пусто", inline=False)
+        embed.add_field(name="Стало", value=after.content or "Пусто", inline=False)
+        
+        embed.set_thumbnail(url=before.author.display_avatar.url)
         embed.set_footer(text=f"User ID: {before.author.id}")
         await self.send_log(LOG_MESSAGES_CHANNEL_ID, embed)
+
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
@@ -69,23 +96,34 @@ class UserLogsCog(commands.Cog):
             return
 
         ts = int(time.time())
-        embed = discord.Embed(timestamp=datetime.now(timezone.utc))
-        embed.set_author(name=f"{member.display_name} ({member.id})", icon_url=member.display_avatar.url)
+        embed = discord.Embed()
+
+        info_value = (
+            f"Участник: {member.mention}\n"
+            f"<:link:1463122462995648662> login: {member.name}\n"
+            f"<:id_card:1463122452790902912> ID: {member.id}"
+        )
 
         if before.channel is None:
-            embed.title = "Подключение к голосовому каналу"
-            embed.description = f"Участник зашел в {after.channel.name}\nВремя: <t:{ts}:R>"
+            embed.description = f"<:join:1463115113115680873> **Подключение к голосовому каналу**"
             embed.color = discord.Color.green()
+            channel_info = f"<:volume:1464700439407890656> Канал: {after.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
         elif after.channel is None:
-            embed.title = "Отключение от голосового канала"
-            embed.description = f"Участник вышел из {before.channel.name}\nВремя: <t:{ts}:R>"
+            embed.description = f"<:leave_icon:1463115110980780198> **Отключение от голосового канала**"
             embed.color = discord.Color.red()
+            channel_info = f"<:volume:1464700439407890656> Канал: {before.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
         else:
-            embed.title = "Перемещение между каналами"
-            embed.description = f"Переход: {before.channel.name} -> {after.channel.name}\nВремя: <t:{ts}:R>"
-            color=discord.Color.from_rgb(54, 57, 63)
+            embed.description = f"<:arrow:1463115113115680873> **Перемещение между каналами**"
+            embed.color = discord.Color.from_rgb(54, 57, 63)
+            channel_info = f"<:volume:1464700439407890656> {before.channel.name} → {after.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
 
+        embed.add_field(name="Информация", value=info_value, inline=True)
+        embed.add_field(name="Детали", value=channel_info, inline=True)
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.set_footer(text=f"User ID: {member.id}")
+        
         await self.send_log(LOG_VOICE_CHANNEL_ID, embed)
+
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
@@ -93,13 +131,25 @@ class UserLogsCog(commands.Cog):
         
         if before.display_name != after.display_name:
             embed = discord.Embed(
-                title="Изменение никнейма",
-                description=f"Участник: {after.mention} ({after.id})\nВремя: <t:{ts}:R>",
-                color=discord.Color.from_rgb(54, 57, 63),
-                timestamp=datetime.now(timezone.utc)
+                description=f"<:edit:1464714103078780989> **Изменение никнейма**",
+                color=discord.Color.from_rgb(54, 57, 63)
             )
-            embed.add_field(name="Прежний", value=before.display_name, inline=True)
-            embed.add_field(name="Новый", value=after.display_name, inline=True)
+            
+            info_value = (
+                f"Участник: {after.mention}\n"
+                f"<:link:1463122462995648662> login: {after.name}\n"
+                f"<:id_card:1463122452790902912> ID: {after.id}"
+            )
+            embed.add_field(name="Информация", value=info_value, inline=True)
+            
+            change_value = (
+                f"**Было:** {before.display_name}\n"
+                f"**Стало:** {after.display_name}\n"
+                f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            )
+            embed.add_field(name="Изменения", value=change_value, inline=True)
+            embed.set_thumbnail(url=after.display_avatar.url)
+            embed.set_footer(text=f"User ID: {after.id}")
             await self.send_log(LOG_NICKNAMES_CHANNEL_ID, embed)
 
         if before.roles != after.roles:
@@ -108,15 +158,25 @@ class UserLogsCog(commands.Cog):
 
             if added or removed:
                 embed = discord.Embed(
-                    title="Обновление ролей пользователя",
-                    description=f"Участник: {after.mention} ({after.id})\nВремя: <t:{ts}:R>",
-                    color=discord.Color.from_rgb(54, 57, 63),
-                    timestamp=datetime.now(timezone.utc)
+                    description=f"<:roles:1463115113115680873> **Обновление ролей**",
+                    color=discord.Color.from_rgb(54, 57, 63)
                 )
+                
+                info_value = (
+                    f"Участник: {after.mention}\n"
+                    f"<:link:1463122462995648662> login: {after.name}\n"
+                    f"<:id_card:1463122452790902912> ID: {after.id}"
+                )
+                embed.add_field(name="Информация", value=info_value, inline=True)
+                embed.add_field(name="Время", value=f"<:clock:1464700439407890656> <t:{ts}:R>", inline=True)
+                
                 if added:
-                    embed.add_field(name="Выданы", value=", ".join(r.mention for r in added), inline=False)
+                    embed.add_field(name="<:plus:1463115113115680873> Выданы", value=", ".join(r.mention for r in added), inline=False)
                 if removed:
-                    embed.add_field(name="Сняты", value=", ".join(r.mention for r in removed), inline=False)
+                    embed.add_field(name="<:minus:1463115113115680873> Сняты", value=", ".join(r.mention for r in removed), inline=False)
+                
+                embed.set_thumbnail(url=after.display_avatar.url)
+                embed.set_footer(text=f"User ID: {after.id}")
                 
                 await self.send_log(LOG_ROLES_CHANNEL_ID, embed)
 
@@ -132,119 +192,159 @@ class UserLogsCog(commands.Cog):
         age_str = f"**{years} лет, {days} дней**" if years > 0 else f"**{days} дней**"
 
         embed = discord.Embed(
-            # Описание сверху (как на скрине: иконка + упоминание + текст)
             description=f"<:emoji:1463115113115680873> {member.mention} присоединился в Discord сервер",
-            color=discord.Color.green() # Зеленая полоска слева
+            color=discord.Color.green()
         )
 
         # Поле "Информация" (слева)
         info_value = (
             f"Участник: {member.mention}\n"
-            f"<:link:123456789> login: {member.name}\n"
-            f"<:id_card:123456789> ID: {member.id}"
+            f"<:link:1463122462995648662> login: {member.name}\n"
+            f"<:id_card:1463122452790902912> ID: {member.id}"
         )
         embed.add_field(name="Информация", value=info_value, inline=True)
 
         # Поле "Возраст аккаунта" (справа)
-        # Используйте свой ID эмодзи песочных часов или секундомера
         embed.add_field(
             name="Возраст аккаунта", 
-            value=f"<:clock:123456789> {age_str}", 
+            value=f"<:clock:1464700439407890656> {age_str}", 
             inline=True
         )
 
         # Нижняя строка с количеством участников
         embed.set_footer(text=f"Количество участников: {member.guild.member_count}")
 
-        # Отправляем в канал модерации или приветствий (добавьте ID в config)
         await self.send_log(LOG_MODERATION_CHANNEL_ID, embed)
+
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
+        ts = int(time.time())
         now = datetime.now(timezone.utc)
         diff = now - member.created_at
         years = diff.days // 365
         days = diff.days % 365
         age_str = f"**{years} лет, {days} дней**" if years > 0 else f"**{days} дней**"
 
-        embed = discord.Embed(
-            description=f"<:leave_icon:123456789> {member.mention} вышел с Discord сервера",
-            color=discord.Color.red() # Красная полоска
-        )
+        # Проверяем был ли кик
+        kicked = False
+        async for entry in member.guild.audit_logs(limit=5, action=discord.AuditLogAction.kick):
+            if entry.target.id == member.id and (datetime.now(timezone.utc) - entry.created_at).total_seconds() < 5:
+                embed = discord.Embed(
+                    description=f"<:ban:1463115110980780198> **Исключение пользователя (Кик)**",
+                    color=discord.Color.from_rgb(54, 57, 63)
+                )
+                
+                info_value = (
+                    f"Участник: {member.mention}\n"
+                    f"<:link:1463122462995648662> login: {member.name}\n"
+                    f"<:id_card:1463122452790902912> ID: {member.id}"
+                )
+                embed.add_field(name="Информация", value=info_value, inline=True)
+                
+                moderator_value = (
+                    f"Модератор: {entry.user.mention}\n"
+                    f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+                )
+                embed.add_field(name="Детали", value=moderator_value, inline=True)
+                
+                embed.set_footer(text=f"User ID: {member.id}")
+                
+                await self.send_log(LOG_MODERATION_CHANNEL_ID, embed)
+                kicked = True
+                break
 
-        info_value = (
-            f"Участник: {member.mention}\n"
-            f"<:link:123456789> login: {member.name}\n"
-            f"<:id_card:123456789> ID: {member.id}"
-        )
-        embed.add_field(name="Информация", value=info_value, inline=True)
-        
-        # Смайлик руки на прощание
-        embed.add_field(
-            name="Возраст аккаунта", 
-            value=f"<:wave:123456789> {age_str}", 
-            inline=True
-        )
+        # Если не кик — то выход
+        if not kicked:
+            embed = discord.Embed(
+                description=f"<:leave_icon:1463115110980780198> {member.mention} вышел с Discord сервера",
+                color=discord.Color.red()
+            )
+            
+            info_value = (
+                f"Участник: {member.mention}\n"
+                f"<:link:1463122462995648662> login: {member.name}\n"
+                f"<:id_card:1463122452790902912> ID: {member.id}"
+            )
+            embed.add_field(name="Информация", value=info_value, inline=True)
+            
+            embed.add_field(
+                name="Возраст аккаунта", 
+                value=f"<:clock:1464700439407890656> {age_str}", 
+                inline=True
+            )
+            
+            embed.set_footer(text=f"Количество участников: {member.guild.member_count}")
+            
+            await self.send_log(LOG_MODERATION_CHANNEL_ID, embed)
 
-        await self.send_log(LOG_MODERATION_CHANNEL_ID, embed)
+
 
     @commands.Cog.listener()
     async def on_guild_role_create(self, role: discord.Role):
         ts = int(time.time())
         embed = discord.Embed(
-            title="Создана роль",
-            description=f"Название: {role.name}\nID: {role.id}\nСоздана: <t:{ts}:R>",
-            color=discord.Color.green(),
-            timestamp=datetime.now(timezone.utc)
+            description=f"<:plus:1463115113115680873> **Создана роль**",
+            color=discord.Color.green()
         )
+        
+        info_value = (
+            f"**Название:** {role.name}\n"
+            f"<:id_card:1463122452790902912> ID: {role.id}\n"
+            f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+        )
+        embed.add_field(name="Информация", value=info_value, inline=False)
         
         perms = role.permissions
         embed.add_field(
-            name="Основные полномочия",
+            name="<:shield:1463115113115680873> Полномочия",
             value=(
-                f"Администратор: {'Да' if perms.administrator else 'Нет'}\n"
-                f"Управление сервером: {'Да' if perms.manage_guild else 'Нет'}\n"
-                f"Управление ролями: {'Да' if perms.manage_roles else 'Нет'}"
+                f"Администратор: {'✅' if perms.administrator else '❌'}\n"
+                f"Управление сервером: {'✅' if perms.manage_guild else '❌'}\n"
+                f"Управление ролями: {'✅' if perms.manage_roles else '❌'}"
             ),
             inline=False
         )
         await self.send_log(LOG_ROLES_CHANNEL_ID, embed)
 
+
     @commands.Cog.listener()
     async def on_guild_role_delete(self, role: discord.Role):
         ts = int(time.time())
         embed = discord.Embed(
-            title="Удалена роль",
-            description=f"Название: {role.name}\nID: {role.id}\nУдалена: <t:{ts}:R>",
-            color=discord.Color.red(),
-            timestamp=datetime.now(timezone.utc)
+            description=f"<:minus:1463115113115680873> **Удалена роль**",
+            color=discord.Color.red()
         )
+        
+        info_value = (
+            f"**Название:** {role.name}\n"
+            f"<:id_card:1463122452790902912> ID: {role.id}\n"
+            f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+        )
+        embed.add_field(name="Информация", value=info_value, inline=False)
+        embed.set_footer(text=f"Role ID: {role.id}")
         await self.send_log(LOG_ROLES_CHANNEL_ID, embed)
+
 
     @commands.Cog.listener()
     async def on_member_ban(self, guild: discord.Guild, user: discord.User):
         ts = int(time.time())
         embed = discord.Embed(
-            title="Блокировка пользователя",
-            description=f"Участник: {user} ({user.id})\nВремя: <t:{ts}:R>",
-            color=discord.Color.dark_red(),
-            timestamp=datetime.now(timezone.utc)
+            description=f"<:ban:1463115110980780198> **Блокировка пользователя**",
+            color=discord.Color.dark_red()
         )
+        
+        info_value = (
+            f"Участник: {user.mention}\n"
+            f"<:link:1463122462995648662> login: {user.name}\n"
+            f"<:id_card:1463122452790902912> ID: {user.id}"
+        )
+        embed.add_field(name="Информация", value=info_value, inline=True)
+        embed.add_field(name="Время", value=f"<:clock:1464700439407890656> <t:{ts}:R>", inline=True)
+        
+        embed.set_thumbnail(url=user.display_avatar.url)
+        embed.set_footer(text=f"User ID: {user.id}")
         await self.send_log(LOG_MODERATION_CHANNEL_ID, embed)
-
-    @commands.Cog.listener()
-    async def on_member_remove(self, member: discord.Member):
-        ts = int(time.time())
-        async for entry in member.guild.audit_logs(limit=1, action=discord.AuditLogAction.kick):
-            if entry.target.id == member.id:
-                embed = discord.Embed(
-                    title="Исключение пользователя (Кик)",
-                    description=f"Участник: {member} ({member.id})\nМодератор: {entry.user}\nВремя: <t:{ts}:R>",
-                    color=discord.Color.from_rgb(54, 57, 63),
-                    timestamp=datetime.now(timezone.utc)
-                )
-                await self.send_log(LOG_MODERATION_CHANNEL_ID, embed)
-                return
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(UserLogsCog(bot))
