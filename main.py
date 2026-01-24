@@ -1,15 +1,19 @@
-
 import discord
 from discord.ext import commands
 import asyncio
+import os
+from dotenv import load_dotenv
 
-from config import TOKEN
+load_dotenv()
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 
+
 bot = commands.Bot(command_prefix="!", intents=intents)
+
 
 @bot.event
 async def on_ready():
@@ -30,6 +34,7 @@ async def on_ready():
     else:
         print("ошибка.")
     print("Все панели настроены.")
+
 
 async def load_cogs():
     try:
@@ -63,12 +68,13 @@ async def load_cogs():
     except Exception as e:
         print(f"Ошибка загрузки user_logs: {e}")
 
-        print("Все коги успешно загружены.")
+    print("Все коги успешно загружены.")
+
     
 async def main():
     async with bot:
         await load_cogs()
-        await bot.start(TOKEN)
+        await bot.start(DISCORD_TOKEN)
 
 
 asyncio.run(main())

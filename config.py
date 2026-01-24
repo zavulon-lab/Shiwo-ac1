@@ -1,4 +1,6 @@
 
+import os
+from dotenv import load_dotenv
 from datetime import timezone
 
 MAX_WINNERS = 10
@@ -32,6 +34,8 @@ LOG_MODERATION_CHANNEL_ID = 1462490797130911835 # Баны, кики, преду
 
 ADMIN_PANEL_CHANNEL_ID = 1463177383702958091  # Канал, где будет висеть статистика 
 
-TOKEN = "MTQxOTA4Mzg5NjIxMjk0Njk2NA.GaPtts.5uJ9MnN7OZEsR1RgmiTQtzIQ21UezI8wmi734Y"
+
+load_dotenv()
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
 
