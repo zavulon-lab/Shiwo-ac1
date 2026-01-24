@@ -232,7 +232,7 @@ class UserLogsCog(commands.Cog):
             if entry.target.id == member.id and (datetime.now(timezone.utc) - entry.created_at).total_seconds() < 5:
                 embed = discord.Embed(
                     description=f"<:ban:1463115110980780198> **Исключение пользователя (Кик)**",
-                    color=discord.Color.from_rgb(54, 57, 63)
+                    color=discord.Color.red()
                 )
                 
                 info_value = (
