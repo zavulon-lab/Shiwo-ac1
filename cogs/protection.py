@@ -1,5 +1,6 @@
-
+import time
 import discord
+from datetime import datetime, timezone, timedelta
 from discord.ext import commands
 from discord.ui import View, Button, Select, Modal, TextInput
 from discord import Interaction, ButtonStyle, SelectOption, AuditLogEntry, Color
@@ -8,7 +9,7 @@ import json
 import os
 import asyncio
 
-from config import PROTECTION_ADMIN_CHANNEL_ID, PROTECTION_LOG_CHANNEL_ID
+from config import PROTECTION_ADMIN_CHANNEL_ID, PROTECTION_LOG_CHANNEL_ID, SUPPORT_ROLE_ID
 
 CONFIG_FILE = "protection_config.json"
 VIOLATIONS_FILE = "violations_count.json"
@@ -463,6 +464,15 @@ class ProtectionCog(commands.Cog):
         self.bot = bot
         self.bot.add_view(ProtectionConfigView())
         self.violations = load_violations()
+        self.user_messages = {}
+        
+        # Загружаем конфиг защиты
+        try:
+            with open("protection_config.json", "r", encoding="utf-8") as f:
+                self.protection_config = json.load(f)
+        except:
+            self.protection_config = {}
+
 
     async def setup_protection_panel(self):
         
@@ -618,6 +628,55 @@ class ProtectionCog(commands.Cog):
     async def on_message(self, message: discord.Message):
         if message.author.bot:
             return
+        
+        # Пропускаем админов и роль поддержки для всей пассивной защиты
+        if message.author.guild_permissions.administrator or any(role.id == SUPPORT_ROLE_ID for role in message.author.roles):
+            await self.handle_action(message=message)
+            return
+        
+        # === ПАССИВНАЯ ЗАЩИТА ===
+        
+        # 1. Защита от инвайтов
+        if "discord.gg/" in message.content or "discord.com/invite" in message.content:
+            try:
+                await message.delete()
+            except:
+                pass
+            return
+        
+        # 2. Защита от @everyone/@here
+        if "@everyone" in message.content or "@here" in message.content:
+            try:
+                await message.delete()
+            except:
+                pass
+            return
+        
+        # 3. Защита от спама (5+ сообщений за 8 сек)
+                # 3. Защита от спама (5+ сообщений за 8 сек)
+        uid = message.author.id
+        now = time.time()
+        
+        if uid not in self.user_messages:
+            self.user_messages[uid] = []
+        
+        self.user_messages[uid] = [t for t in self.user_messages[uid] if now - t < 8]
+        self.user_messages[uid].append(now)
+        
+        if len(self.user_messages[uid]) >= 5:
+            try:
+                # Таймаут на 5 минут
+                until = datetime.now(timezone.utc) + timedelta(minutes=5)
+                await message.author.timeout(until, reason="Пассивная защита: спам сообщениями")
+                
+                self.user_messages[uid] = []
+            except:
+                pass
+            return
+
+        
+        # === КОНЕЦ ПАССИВНОЙ ЗАЩИТЫ ===
+        
         await self.handle_action(message=message)
 
 
