@@ -1,0 +1,37 @@
+
+from datetime import timezone
+
+MAX_WINNERS = 10
+
+TICKET_CHANNEL_ID = 1453762419208753337      # Канал с меню создания тикетов
+TICKET_CATEGORY_ID = 1453762380189143161     # Категория, где создаются тикеты
+TICKET_LOG_CHANNEL_ID = 1427628115663912990  # Лог тикетов
+
+WELCOME_CHANNEL_ID = 1454447177177895098
+
+GIVEAWAY_USER_CHANNEL_ID = 1454945468407877642   # Embed для пользователей
+GIVEAWAY_ADMIN_CHANNEL_ID = 1454945608635908331  # Панель админов
+GIVEAWAY_LOG_CHANNEL_ID = 1454945745126821949   # Логи розыгрышей
+
+PROTECTION_ADMIN_CHANNEL_ID = 1458210312074432555  # ← Твой канал для панели защиты
+PROTECTION_LOG_CHANNEL_ID = 1458211778184876183   # ← Опционально, для логов срабатывания (потом)
+
+channel_id = 1458210312074432555
+
+RULES_CHANNEL_ID = 1410035165253734542     # #rules
+PURCHASE_CHANNEL_ID = 1410035165253734543  # #purchase
+
+SUPPORT_ROLE_ID = 1462554170606358562      # Роль поддержки
+
+
+LOG_MESSAGES_CHANNEL_ID = 1462490554603405596  # Логи сообщений (удаление, редактирование)
+LOG_VOICE_CHANNEL_ID = 1462490611499405354     # Логи голосовых действий (заход/выход)
+LOG_ROLES_CHANNEL_ID = 1462490668248207371     # Изменение ролей, добавление/удаление
+LOG_NICKNAMES_CHANNEL_ID = 1462490729933836361  # Изменение никнеймов
+LOG_MODERATION_CHANNEL_ID = 1462490797130911835 # Баны, кики, предупреждения
+
+ADMIN_PANEL_CHANNEL_ID = 1463177383702958091  # Канал, где будет висеть статистика 
+
+TOKEN = "MTQxOTA4Mzg5NjIxMjk0Njk2NA.GaPtts.5uJ9MnN7OZEsR1RgmiTQtzIQ21UezI8wmi734Y"
+
+
