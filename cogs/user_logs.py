@@ -347,4 +347,4 @@ class UserLogsCog(commands.Cog):
         await self.send_log(LOG_MODERATION_CHANNEL_ID, embed)
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(UserLogsCog(bot))
+    await bot.add_cog(UserLogsCog(bot), override=True)

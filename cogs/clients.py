@@ -611,16 +611,25 @@ class ClientsPanelCog(commands.Cog):
             return None
 
     async def delete_previous_message(self, channel: discord.TextChannel):
-        """Удаляет предыдущее сообщение панели по футеру"""
+        """Удаляет предыдущие сообщения панели"""
         try:
-            async for message in channel.history(limit=10):
+            deleted_count = 0
+            async for message in channel.history(limit=50):
+                # Проверяем, является ли сообщение от бота и содержит embed
                 if message.author == self.bot.user and message.embeds:
                     embed = message.embeds[0]
-                    if embed.footer and "Shiwo ac • faq" in embed.footer.text:
+                    # Проверяем заголовок вместо футера
+                    if embed.title and "Возможно интересующие вас вопросы" in embed.title:
                         await message.delete()
+                        deleted_count += 1
+                        print(f"[Clients] Удалено сообщение: {message.id}")
                         break
+            
+            if deleted_count == 0:
+                print("[Clients] Старые панели не найдены")
         except Exception as e:
             print(f"[Clients] Ошибка при удалении старой панели: {e}")
+
 
     async def send_new_panel(self, channel: discord.TextChannel):
         embed = discord.Embed(

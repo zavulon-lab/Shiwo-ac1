@@ -25,14 +25,12 @@ async def on_ready():
         await tickets_cog.setup_ticket_panel()
         if hasattr(tickets_cog, 'setup_admin_stats_panel'):
             await tickets_cog.setup_admin_stats_panel()
-    giveaway_cog = bot.get_cog("GiveawayCog")
+    giveaway_cog = bot.get_cog('GiveawayCog')
     if giveaway_cog:
         await giveaway_cog.setup_giveaway_panels()
     protection_cog = bot.get_cog("ProtectionCog")  
     if protection_cog:
         await protection_cog.setup_protection_panel()
-    else:
-        print("ошибка.")
     print("Все панели настроены.")
 
 

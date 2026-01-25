@@ -377,6 +377,7 @@ class GiveawayCog(commands.Cog):
 
     @tasks.loop(minutes=1)
     async def check_giveaway_end(self):
+        """Проверка завершения розыгрыша по времени"""
         data = load_giveaway_data()
         
         if not data or data.get("status") == "finished":
@@ -391,53 +392,81 @@ class GiveawayCog(commands.Cog):
             return
 
         try:
+            # Парсим время окончания
             end_dt = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M")
             
-            if datetime.now() >= end_dt:
+            # Получаем текущее время
+            current_time = datetime.now()
+            
+            # Проверяем завершился ли розыгрыш
+            if current_time >= end_dt:
+                print(f"[РОЗЫГРЫШ] Розыгрыш завершен!")
+                
+                # Выбираем победителей
                 participants = data.get("participants", [])
                 winner_count = int(data.get("winner_count", 1))
                 winner_ids = []
+                
+                # Если были предварительно выбраны - используем их
                 if data.get("preselected_winners"):
                     winner_ids = data["preselected_winners"]
+                # Иначе выбираем случайно
                 elif participants:
                     actual_winners_count = min(len(participants), winner_count)
                     winner_ids = random.sample(participants, actual_winners_count)
 
+                # Обновляем данные
                 data["status"] = "finished" 
                 data["winners"] = winner_ids
                 data["finished_at"] = datetime.now(timezone.utc).isoformat()
                 
+                # Удаляем предварительные данные
                 data.pop("preselected_winners", None)
                 data.pop("preselected_by", None)
                 data.pop("preselected_at", None)
 
+                # Сохраняем
                 save_giveaway_data(data)
 
+                # Обновляем эмбед в канале
                 await update_user_giveaway_embed(guild)
 
-                
+                # Логируем результат
                 log_channel = guild.get_channel(GIVEAWAY_LOG_CHANNEL_ID)
                 if log_channel:
                     mentions_log = ", ".join([f"<@{wid}>" for wid in winner_ids]) if winner_ids else "Нет"
                     
                     log_embed = discord.Embed(
-                        title="Розыгрыш завершен (Авто)",
-                        description=f"**Приз:** {data.get('prize')}\n**Победители:** {mentions_log}",
-                        color=discord.Color.from_rgb(54, 57, 63),
+                        title="✅ Розыгрыш завершен",
+                        description=(
+                            f"**Приз:** {data.get('prize')}\n"
+                            f"**Победители:** {mentions_log}\n"
+                            f"**Участников было:** {len(participants)}"
+                        ),
+                        color=discord.Color.green(),
                         timestamp=datetime.now(timezone.utc)
                     )
-
                     
                     if guild.icon:
                         log_embed.set_thumbnail(url=guild.icon.url)
                     
-                    
                     log_embed.set_author(name=guild.name, icon_url=guild.icon.url if guild.icon else None)
 
                     await log_channel.send(embed=log_embed)
+                    
+                print(f"[✅] Розыгрыш завершен. Победителей: {len(winner_ids)}")
 
         except Exception as e:
-            print(f"[ОШИБКА ТАЙМЕРА] {e}")
+            print(f"[❌ ОШИБКА ТАЙМЕРА] {e}")
+            import traceback
+            traceback.print_exc()
+
+
+    @check_giveaway_end.before_loop
+    async def before_check_giveaway_end(self):
+        """Ждём пока бот будет готов"""
+        await self.bot.wait_until_ready()
+
 
 
 async def setup(bot):

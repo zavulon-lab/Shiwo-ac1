@@ -16,6 +16,8 @@ from discord import (
 )
 from datetime import datetime, timezone
 import asyncio
+from math import ceil
+
 
 from config import (
     TICKET_CHANNEL_ID,
@@ -25,7 +27,11 @@ from config import (
     ADMIN_PANEL_CHANNEL_ID
 )
 
+
 DB_FILE = "transcripts.db"
+ITEMS_PER_PAGE = 10  # Количество модераторов на странице
+ITEMS_PER_RATINGS_PAGE = 8  # Количество оценок на странице
+
 
 # ============ DATABASE INIT ============
 def init_db():
@@ -33,7 +39,6 @@ def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     
-    # Таблица транскриптов
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS transcripts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +49,6 @@ def init_db():
         )
     ''')
     
-    # Таблица рейтингов
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ratings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,7 +62,6 @@ def init_db():
         )
     ''')
     
-    # Таблица статистики модераторов
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS moderator_stats (
             moderator_id INTEGER PRIMARY KEY,
@@ -68,8 +71,13 @@ def init_db():
         )
     ''')
     
+    # Добавляем индексы для оптимизации
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_moderator_id ON ratings(moderator_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_ticket_moderator ON transcripts(moderator_id)')
+    
     conn.commit()
     conn.close()
+
 
 # ============ TRANSCRIPT FUNCTIONS ============
 def save_transcript_data(moderator_id: int, transcript_html: str, ticket_name: str):
@@ -85,6 +93,7 @@ def save_transcript_data(moderator_id: int, transcript_html: str, ticket_name: s
     conn.close()
     return transcript_id
 
+
 def load_transcript_data(transcript_id: int):
     """Загружает транскрипт по ID"""
     conn = sqlite3.connect(DB_FILE)
@@ -97,6 +106,7 @@ def load_transcript_data(transcript_id: int):
         return {"transcript": row[0], "ticket_name": row[1]}
     return None
 
+
 def delete_transcript_data(transcript_id: int):
     """Удаляет транскрипт по ID"""
     conn = sqlite3.connect(DB_FILE)
@@ -104,6 +114,7 @@ def delete_transcript_data(transcript_id: int):
     cursor.execute('DELETE FROM transcripts WHERE id = ?', (transcript_id,))
     conn.commit()
     conn.close()
+
 
 def get_moderator_transcripts(moderator_id: int):
     """Получить все транскрипты модератора"""
@@ -118,19 +129,18 @@ def get_moderator_transcripts(moderator_id: int):
     conn.close()
     return rows
 
+
 # ============ RATING FUNCTIONS ============
 def save_rating(moderator_id: int, user_id: int, rating: int, transcript_id: int, ticket_name: str):
     """Сохраняет оценку и обновляет статистику"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     
-    # Сохраняем оценку
     cursor.execute('''
         INSERT INTO ratings (moderator_id, user_id, rating, transcript_id, ticket_name)
         VALUES (?, ?, ?, ?, ?)
     ''', (moderator_id, user_id, rating, transcript_id, ticket_name))
     
-    # Обновляем статистику модератора
     cursor.execute('''
         SELECT COUNT(*), AVG(rating) FROM ratings WHERE moderator_id = ?
     ''', (moderator_id,))
@@ -144,6 +154,7 @@ def save_rating(moderator_id: int, user_id: int, rating: int, transcript_id: int
     
     conn.commit()
     conn.close()
+
 
 def get_moderator_stats(moderator_id: int):
     """Получить статистику модератора"""
@@ -159,33 +170,347 @@ def get_moderator_stats(moderator_id: int):
         return {"total_tickets": row[0], "avg_rating": row[1]}
     return {"total_tickets": 0, "avg_rating": 0}
 
-def get_all_moderator_stats():
-    """Получить статистику всех модераторов"""
+
+def get_all_moderator_stats(page: int = 1, limit: int = ITEMS_PER_PAGE):
+    """Получить статистику модераторов с пагинацией"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
+    
+    # Получаем общее количество модераторов
+    cursor.execute('SELECT COUNT(*) FROM moderator_stats')
+    total_count = cursor.fetchone()[0]
+    
+    # Рассчитываем offset
+    offset = (page - 1) * limit
+    
     cursor.execute('''
         SELECT moderator_id, total_tickets, avg_rating FROM moderator_stats 
         ORDER BY avg_rating DESC
-    ''')
+        LIMIT ? OFFSET ?
+    ''', (limit, offset))
     rows = cursor.fetchall()
     conn.close()
     
-    return {str(row[0]): {"total_tickets": row[1], "avg_rating": row[2]} for row in rows}
+    total_pages = ceil(total_count / limit) if total_count > 0 else 1
+    
+    return {
+        "data": {str(row[0]): {"total_tickets": row[1], "avg_rating": row[2]} for row in rows},
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "current_page": page
+    }
 
-def get_moderator_ratings(moderator_id: int):
-    """Получить все оценки модератора с информацией о тикетах"""
+
+def get_moderator_ratings(moderator_id: int, page: int = 1, limit: int = ITEMS_PER_RATINGS_PAGE):
+    """Получить оценки модератора с пагинацией"""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
+    
+    # Получаем общее количество оценок
+    cursor.execute('SELECT COUNT(*) FROM ratings WHERE moderator_id = ?', (moderator_id,))
+    total_count = cursor.fetchone()[0]
+    
+    offset = (page - 1) * limit
+    
     cursor.execute('''
         SELECT rating, ticket_name, rated_at, id FROM ratings 
         WHERE moderator_id = ? 
         ORDER BY rated_at DESC
-    ''', (moderator_id,))
+        LIMIT ? OFFSET ?
+    ''', (moderator_id, limit, offset))
     rows = cursor.fetchall()
     conn.close()
-    return rows
+    
+    total_pages = ceil(total_count / limit) if total_count > 0 else 1
+    
+    return {
+        "data": rows,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "current_page": page
+    }
 
-# ============ VIEWS ============
+
+# ============ PAGINATION VIEWS ============
+
+class AllStatsNavigationView(View):
+    """View для навигации по всей статистике"""
+    def __init__(self, page: int, total_pages: int, guild: discord.Guild):
+        super().__init__(timeout=300)
+        self.page = page
+        self.total_pages = total_pages
+        self.guild = guild
+        
+        # Отключаем кнопки если они неактуальны
+        if page <= 1:
+            self.prev_page.disabled = True
+        if page >= total_pages:
+            self.next_page.disabled = True
+
+
+    @discord.ui.button(label="◀", style=discord.ButtonStyle.grey, custom_id="stats_prev")
+    async def prev_page(self, interaction: Interaction, button: Button):
+        if self.page > 1:
+            await self.show_page(interaction, self.page - 1)
+
+
+    @discord.ui.button(label="▶", style=discord.ButtonStyle.grey, custom_id="stats_next")
+    async def next_page(self, interaction: Interaction, button: Button):
+        if self.page < self.total_pages:
+            await self.show_page(interaction, self.page + 1)
+
+
+    @discord.ui.button(label=f"Страница 1/1", style=discord.ButtonStyle.grey, custom_id="stats_page", disabled=True)
+    async def page_button(self, interaction: Interaction, button: Button):
+        pass
+
+
+    async def show_page(self, interaction: Interaction, page: int):
+        stats_result = get_all_moderator_stats(page=page, limit=ITEMS_PER_PAGE)
+        stats = stats_result["data"]
+        
+        embed = discord.Embed(
+            title="📊 Общий отчет по команде",
+            color=discord.Color.blue(),
+            timestamp=datetime.now(timezone.utc)
+        )
+        
+        if not stats:
+            embed.description = "Нет данных для отображения"
+        else:
+            for mod_id_str, data in stats.items():
+                member = self.guild.get_member(int(mod_id_str))
+                name = member.display_name if member else f"ID: {mod_id_str}"
+                avg = data["avg_rating"]
+                total = data["total_tickets"]
+                embed.add_field(
+                    name=f"👤 {name}",
+                    value=f"Рейтинг: **{avg:.2f}** ⭐ | Тикетов: **{total}**",
+                    inline=False
+                )
+        
+        # Обновляем view с новой страницей
+        new_view = AllStatsNavigationView(page, stats_result["total_pages"], self.guild)
+        new_view.page_button.label = f"Страница {page}/{stats_result['total_pages']}"
+        
+        embed.set_footer(
+            text=f"Всего модераторов: {stats_result['total_count']} | Страница {page}/{stats_result['total_pages']}"
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=new_view)
+
+
+class ModeratorSelectView(View):
+    """View для выбора модератора с пагинацией"""
+    def __init__(self, guild: discord.Guild, page: int = 1, timeout: int = 60):
+        super().__init__(timeout=timeout)
+        self.guild = guild
+        self.page = page
+        self.stats_result = get_all_moderator_stats(page=page, limit=ITEMS_PER_PAGE)
+        self.total_pages = self.stats_result["total_pages"]
+        
+        self.populate_select()
+        self.update_navigation_buttons()
+
+
+    def populate_select(self):
+        """Заполняет select меню модераторами текущей страницы"""
+        # Удаляем старый select если существует
+        for item in self.children[:]:
+            if isinstance(item, Select):
+                self.remove_item(item)
+        
+        stats = self.stats_result["data"]
+        options = []
+        
+        for mod_id_str in stats.keys():
+            member = self.guild.get_member(int(mod_id_str))
+            if member:
+                data = stats[mod_id_str]
+                label = f"{member.display_name} ({data['avg_rating']:.2f}⭐)"
+                options.append(
+                    discord.SelectOption(
+                        label=label[:100],  # Discord лимит на label
+                        value=mod_id_str,
+                        description=f"Тикетов: {data['total_tickets']}"
+                    )
+                )
+        
+        if options:
+            select = discord.ui.Select(
+                placeholder="Выберите сотрудника...",
+                options=options,
+                custom_id="mod_select_paginated"
+            )
+            select.callback = self.select_callback
+            self.add_item(select)
+
+
+    def update_navigation_buttons(self):
+        """Обновляет состояние кнопок навигации"""
+        for item in self.children[:]:
+            if isinstance(item, Button):
+                self.remove_item(item)
+        
+        # Кнопка назад
+        prev_btn = discord.ui.Button(label="◀", style=discord.ButtonStyle.grey)
+        prev_btn.callback = self.prev_page
+        prev_btn.disabled = self.page <= 1
+        self.add_item(prev_btn)
+        
+        # Информация о странице
+        page_info = discord.ui.Button(
+            label=f"Страница {self.page}/{self.total_pages}",
+            style=discord.ButtonStyle.grey,
+            disabled=True
+        )
+        self.add_item(page_info)
+        
+        # Кнопка вперед
+        next_btn = discord.ui.Button(label="▶", style=discord.ButtonStyle.grey)
+        next_btn.callback = self.next_page
+        next_btn.disabled = self.page >= self.total_pages
+        self.add_item(next_btn)
+
+
+    async def prev_page(self, interaction: Interaction):
+        if self.page > 1:
+            self.page -= 1
+            self.stats_result = get_all_moderator_stats(page=self.page, limit=ITEMS_PER_PAGE)
+            self.populate_select()
+            self.update_navigation_buttons()
+            await interaction.response.edit_message(view=self)
+
+
+    async def next_page(self, interaction: Interaction):
+        if self.page < self.total_pages:
+            self.page += 1
+            self.stats_result = get_all_moderator_stats(page=self.page, limit=ITEMS_PER_PAGE)
+            self.populate_select()
+            self.update_navigation_buttons()
+            await interaction.response.edit_message(view=self)
+
+
+    async def select_callback(self, interaction: Interaction):
+        mod_id = int(self.children[0].values[0])  # Select всегда первый элемент
+        await self.show_moderator_details(interaction, mod_id)
+
+
+    async def show_moderator_details(self, interaction: Interaction, mod_id: int):
+        stats_data = get_moderator_stats(mod_id)
+        ratings_result = get_moderator_ratings(mod_id, page=1, limit=ITEMS_PER_RATINGS_PAGE)
+        m_member = self.guild.get_member(mod_id)
+        
+        if not m_member:
+            await interaction.response.send_message("Модератор не найден", ephemeral=True)
+            return
+        
+        embed = discord.Embed(
+            title=f"Профиль модератора: {m_member.display_name}",
+            color=discord.Color.from_rgb(54, 57, 63),
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.set_thumbnail(url=m_member.display_avatar.url)
+        embed.add_field(
+            name="Общий рейтинг",
+            value=f"**{stats_data['avg_rating']:.2f} / 5.0** ⭐",
+            inline=True
+        )
+        embed.add_field(
+            name="Закрыто тикетов",
+            value=f"**{stats_data['total_tickets']}**",
+            inline=True
+        )
+        
+        if ratings_result["data"]:
+            rating_text = "\n".join([
+                f"**{r[1]}** - {r[0]}⭐"
+                for r in ratings_result["data"][:ITEMS_PER_RATINGS_PAGE]
+            ])
+            embed.add_field(name="Последние оценки", value=rating_text, inline=False)
+        
+        embed.set_footer(
+            text=f"ID: {mod_id} | Страница 1/{ratings_result['total_pages']}"
+        )
+        
+        view = RatingsNavigationView(mod_id, 1, ratings_result["total_pages"], self.guild)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+
+class RatingsNavigationView(View):
+    """View для навигации по оценкам модератора"""
+    def __init__(self, moderator_id: int, page: int, total_pages: int, guild: discord.Guild):
+        super().__init__(timeout=300)
+        self.moderator_id = moderator_id
+        self.page = page
+        self.total_pages = total_pages
+        self.guild = guild
+        
+        if page <= 1:
+            self.prev_btn.disabled = True
+        if page >= total_pages:
+            self.next_btn.disabled = True
+
+
+    @discord.ui.button(label="◀", style=discord.ButtonStyle.grey, custom_id="ratings_prev")
+    async def prev_btn(self, interaction: Interaction, button: Button):
+        if self.page > 1:
+            await self.show_page(interaction, self.page - 1)
+
+
+    @discord.ui.button(label="▶", style=discord.ButtonStyle.grey, custom_id="ratings_next")
+    async def next_btn(self, interaction: Interaction, button: Button):
+        if self.page < self.total_pages:
+            await self.show_page(interaction, self.page + 1)
+
+
+    @discord.ui.button(label=f"Страница 1/1", style=discord.ButtonStyle.grey, custom_id="ratings_page", disabled=True)
+    async def page_btn(self, interaction: Interaction, button: Button):
+        pass
+
+
+    async def show_page(self, interaction: Interaction, page: int):
+        ratings_result = get_moderator_ratings(self.moderator_id, page=page)
+        stats_data = get_moderator_stats(self.moderator_id)
+        m_member = self.guild.get_member(self.moderator_id)
+        
+        embed = discord.Embed(
+            title=f"Профиль модератора: {m_member.display_name}",
+            color=discord.Color.from_rgb(54, 57, 63),
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.set_thumbnail(url=m_member.display_avatar.url)
+        embed.add_field(
+            name="Общий рейтинг",
+            value=f"**{stats_data['avg_rating']:.2f} / 5.0** ⭐",
+            inline=True
+        )
+        embed.add_field(
+            name="Закрыто тикетов",
+            value=f"**{stats_data['total_tickets']}**",
+            inline=True
+        )
+        
+        if ratings_result["data"]:
+            rating_text = "\n".join([
+                f"**{r[1]}** - {r[0]}⭐"
+                for r in ratings_result["data"]
+            ])
+            embed.add_field(name="Оценки", value=rating_text, inline=False)
+        else:
+            embed.add_field(name="Оценки", value="Нет оценок на этой странице", inline=False)
+        
+        embed.set_footer(
+            text=f"ID: {self.moderator_id} | Страница {page}/{ratings_result['total_pages']}"
+        )
+        
+        new_view = RatingsNavigationView(self.moderator_id, page, ratings_result["total_pages"], self.guild)
+        new_view.page_btn.label = f"Страница {page}/{ratings_result['total_pages']}"
+        
+        await interaction.response.edit_message(embed=embed, view=new_view)
+
+
+# ============ ОСТАЛЬНЫЕ VIEWS ============
 
 class PostTicketActions(View):
     def __init__(self, moderator_id: int, transcript_id: int, ticket_name: str):
@@ -193,6 +518,7 @@ class PostTicketActions(View):
         self.moderator_id = moderator_id
         self.transcript_id = transcript_id
         self.ticket_name = ticket_name
+
 
     @discord.ui.button(label="Транскрипция", style=ButtonStyle.grey, emoji="📑")
     async def download_transcript(self, interaction: Interaction, button: Button):
@@ -207,6 +533,7 @@ class PostTicketActions(View):
             filename=f"transcript-{data['ticket_name']}.html"
         )
         await interaction.response.send_message("Вот ваша полная история переписки:", file=file, ephemeral=True)
+
 
     @discord.ui.button(label="Оцените модератора", style=ButtonStyle.grey, emoji="⭐")
     async def rate_service(self, interaction: Interaction, button: Button):
@@ -228,6 +555,7 @@ class PostTicketActions(View):
                 
                 return callback
 
+
             btn.callback = await create_callback(i)
             rate_view.add_item(btn)
             
@@ -238,15 +566,145 @@ class PostTicketActions(View):
         )
 
 
+# ============ ADMIN PANEL VIEW ============
+
+class AdminStatsView(discord.ui.View):
+    def __init__(self, *args, **kwargs):
+        super().__init__(timeout=None)
+        self.admin_password = "cartel"
+
+
+    @discord.ui.button(
+        label="Вся статистика",
+        style=discord.ButtonStyle.green,
+        custom_id="stats_all",
+        emoji="<:stats:1463129091451650069>"
+    )
+    async def show_all_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+        stats_result = get_all_moderator_stats(page=1, limit=ITEMS_PER_PAGE)
+        stats = stats_result["data"]
+        
+        if not stats:
+            return await interaction.response.send_message("Статистика пуста.", ephemeral=True)
+        
+        embed = discord.Embed(
+            title="📊 Общий отчет по команде",
+            color=discord.Color.blue(),
+            timestamp=datetime.now(timezone.utc)
+        )
+        
+        for mod_id_str, data in stats.items():
+            member = interaction.guild.get_member(int(mod_id_str))
+            name = member.display_name if member else f"ID: {mod_id_str}"
+            avg = data["avg_rating"]
+            total = data["total_tickets"]
+            embed.add_field(
+                name=f"👤 {name}",
+                value=f"Рейтинг: **{avg:.2f}** ⭐ | Тикетов: **{total}**",
+                inline=False
+            )
+        
+        embed.set_footer(
+            text=f"Всего модераторов: {stats_result['total_count']} | Страница 1/{stats_result['total_pages']}"
+        )
+        
+        view = AllStatsNavigationView(1, stats_result["total_pages"], interaction.guild)
+        view.page_button.label = f"Страница 1/{stats_result['total_pages']}"
+        
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+
+    @discord.ui.button(
+        label="По модераторам",
+        style=discord.ButtonStyle.blurple,
+        custom_id="stats_by_mod",
+        emoji="<:stats:1464710641817223410>"
+    )
+    async def show_mod_select(self, interaction: discord.Interaction, button: discord.ui.Button):
+        stats_result = get_all_moderator_stats(page=1, limit=ITEMS_PER_PAGE)
+        
+        if not stats_result["data"]:
+            return await interaction.response.send_message("Активные модераторы не найдены.", ephemeral=True)
+        
+        view = ModeratorSelectView(interaction.guild, page=1)
+        await interaction.response.send_message(
+            f"Выберите модератора ({stats_result['total_count']} всего)",
+            view=view,
+            ephemeral=True
+        )
+
+
+    @discord.ui.button(
+        label="Экспорт БД",
+        style=discord.ButtonStyle.secondary,
+        custom_id="stats_export",
+        emoji="📥"
+    )
+    async def export_database(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message("Доступ запрещен.", ephemeral=True)
+            
+        if not os.path.exists(DB_FILE):
+            return await interaction.response.send_message("Файл базы не найден.", ephemeral=True)
+
+        file = discord.File(DB_FILE, filename=f"backup_db_{datetime.now().date()}.db")
+        await interaction.response.send_message("Копия базы данных подготовлена:", file=file, ephemeral=True)
+
+
+    @discord.ui.button(
+        label="Сброс БД",
+        style=discord.ButtonStyle.danger,
+        custom_id="stats_reset_secure",
+        emoji="<:error:1463122517102297214>"
+    )
+    async def secure_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message("Только гл. администратор может сбросить базу.", ephemeral=True)
+        await interaction.response.send_modal(ResetPasswordModal(self.admin_password))
+
+
+class ResetPasswordModal(discord.ui.Modal, title="Подтверждение сброса базы"):
+    password_input = discord.ui.TextInput(
+        label="Введите пароль администратора",
+        placeholder="Пароль...",
+        required=True,
+        min_length=4
+    )
+
+
+    def __init__(self, correct_password):
+        super().__init__()
+        self.correct_password = correct_password
+
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.password_input.value == self.correct_password:
+            conn = sqlite3.connect(DB_FILE)
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM ratings')
+            cursor.execute('DELETE FROM moderator_stats')
+            cursor.execute('DELETE FROM transcripts')
+            conn.commit()
+            conn.close()
+            await interaction.response.send_message("База данных успешно очищена.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Неверный пароль! Доступ заблокирован.", ephemeral=True)
+
+
+# ============ ОСТАЛЬНОЙ КОД (TRANSCRIPT, CLOSE VIEWS) ============
+# Здесь вставьте остальные классы: TicketCloseView, CloseReasonModal, TicketSelectView, TicketsCog
+# и функции: generate_html_transcript
+
+
 class TicketCloseView(View):
     def __init__(self, ticket_channel: TextChannel = None, opener: discord.Member = None):
         super().__init__(timeout=None)
         self.ticket_channel = ticket_channel
         self.opener = opener
 
+
     @discord.ui.button(label="Закрыть", style=ButtonStyle.red, custom_id="close_ticket_btn")
     async def close_ticket(self, interaction: Interaction, button: Button):
-        # Получаем канал из контекста если нет в памяти
         if not self.ticket_channel:
             self.ticket_channel = interaction.channel
         if not self.opener:
@@ -261,7 +719,6 @@ class TicketCloseView(View):
 
         await interaction.response.defer()
 
-        # 1. Генерация данных (Транскрипт + Статистика сообщений)
         html_data = await generate_html_transcript(self.ticket_channel)
         
         stats = {}
@@ -270,7 +727,6 @@ class TicketCloseView(View):
                 stats[msg.author.display_name] = stats.get(msg.author.display_name, 0) + 1
         participants_text = "\n".join([f"{n} - {c} сообщений " for n, c in stats.items()]) or "Нет сообщений"
 
-        # 2. ОТПРАВКА В АРХИВ (Админ-канал)
         log_channel = interaction.guild.get_channel(TICKET_LOG_CHANNEL_ID)
         if log_channel:
             file = discord.File(io.BytesIO(html_data.encode('utf-8')), filename=f"archive-{self.ticket_channel.name}.html")
@@ -283,7 +739,6 @@ class TicketCloseView(View):
             log_embed.set_thumbnail(url=interaction.user.display_avatar.url)
             await log_channel.send(embed=log_embed, file=file)
 
-        # 3. Эмбед для ЛС пользователя
         user_embed = discord.Embed(
             description=f"## <:emoji_name:1463153492595310644> Закрытый тикет",
             color=Color.from_rgb(54, 57, 63),
@@ -305,6 +760,7 @@ class TicketCloseView(View):
         await asyncio.sleep(5)
         await self.ticket_channel.delete()
 
+
     @discord.ui.button(label="Закрыть с причиной", style=ButtonStyle.grey, custom_id="close_with_reason_btn")
     async def close_with_reason(self, interaction: Interaction, button: Button):
         if not self.ticket_channel:
@@ -313,7 +769,6 @@ class TicketCloseView(View):
         if not (interaction.user.guild_permissions.administrator or interaction.user.guild_permissions.manage_channels):
             return await interaction.response.send_message("Только поддержка может это делать.", ephemeral=True)
         await interaction.response.send_modal(CloseReasonModal(self.ticket_channel, interaction.user))
-
 
 
 class CloseReasonModal(Modal, title="Укажите причину закрытия"):
@@ -328,7 +783,6 @@ class CloseReasonModal(Modal, title="Укажите причину закрыт�
         reason_text = self.reason.value.strip()
         await interaction.response.defer(ephemeral=True)
 
-        # Получаем канал если нет в памяти
         if not self.ticket_channel:
             self.ticket_channel = interaction.channel
         if not self.closer:
@@ -342,20 +796,18 @@ class CloseReasonModal(Modal, title="Укажите причину закрыт�
                 stats[msg.author.display_name] = stats.get(msg.author.display_name, 0) + 1
         participants_text = "\n".join([f"{n} - {c} сообщений" for n, c in stats.items()]) or "Нет сообщений"
 
-        # Архив
         log_channel = interaction.guild.get_channel(TICKET_LOG_CHANNEL_ID)
         if log_channel:
             file = discord.File(io.BytesIO(html_data.encode('utf-8')), filename=f"archive-{self.ticket_channel.name}.html")
             log_embed = discord.Embed(
                 title="🗄️ Архив тикета",
                 description=f"**Канал:** `{self.ticket_channel.name}`\n**Закрыл:** {interaction.user.mention}\n**Причина:** {reason_text}",
-                color=discord.Color.orange(),
+                color=discord.Color.from_rgb(54, 57, 63),
                 timestamp=datetime.now(timezone.utc)
             )
             log_embed.set_thumbnail(url=interaction.user.display_avatar.url)
             await log_channel.send(embed=log_embed, file=file)
 
-        # Поиск автора тикета
         opener = None
         try:
             user_id = int(self.ticket_channel.topic.split("user_id=")[1].split("|")[0])
@@ -365,7 +817,7 @@ class CloseReasonModal(Modal, title="Укажите причину закрыт�
         if opener:
             user_embed = discord.Embed(
                 description=f"## <:emoji_name:1463153492595310644> Тикет закрыт", 
-                color=Color.orange(), 
+                color=discord.Color.from_rgb(54, 57, 63), 
                 timestamp=datetime.now(timezone.utc)
             )
             user_embed.add_field(name="Название тикета", value=f"`{self.ticket_channel.name}`", inline=True)
@@ -383,7 +835,6 @@ class CloseReasonModal(Modal, title="Укажите причину закрыт�
         await interaction.followup.send(f"Тикет закрыт.")
         await asyncio.sleep(5)
         await self.ticket_channel.delete()
-
 
 
 class TicketSelectView(View):
@@ -494,122 +945,6 @@ class TicketSelectView(View):
             await interaction.followup.send("Произошла внутренняя ошибка при создании тикета.", ephemeral=True)
 
 
-class AdminStatsView(discord.ui.View):
-    def __init__(self, *args, **kwargs):
-        super().__init__(timeout=None)
-        self.admin_password = "cartel"
-
-    @discord.ui.button(label="Вся статистика", style=discord.ButtonStyle.green, custom_id="stats_all", emoji="<:stats:1463129091451650069>")
-    async def show_all_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-        stats = get_all_moderator_stats()
-        if not stats:
-            return await interaction.response.send_message("Статистика пуста.", ephemeral=True)
-        
-        embed = discord.Embed(title="📊 Общий отчет по команде", color=discord.Color.blue())
-        for mod_id_str, data in stats.items():
-            member = interaction.guild.get_member(int(mod_id_str))
-            name = member.display_name if member else f"ID: {mod_id_str}"
-            avg = data["avg_rating"]
-            total = data["total_tickets"]
-            embed.add_field(
-                name=name,
-                value=f"Рейтинг: **{avg:.2f}** ⭐ | Тикетов: **{total}**",
-                inline=False
-            )
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    @discord.ui.button(label="По модераторам", style=discord.ButtonStyle.blurple, custom_id="stats_by_mod", emoji="<:stats:1464710641817223410>")
-    async def show_mod_select(self, interaction: discord.Interaction, button: discord.ui.Button):
-        stats = get_all_moderator_stats()
-        if not stats:
-            return await interaction.response.send_message("Статистика пуста.", ephemeral=True)
-
-        view = discord.ui.View(timeout=60)
-        options = []
-        for mod_id_str in stats.keys():
-            member = interaction.guild.get_member(int(mod_id_str))
-            if member:
-                options.append(discord.SelectOption(label=member.display_name, value=mod_id_str))
-
-        if not options:
-            return await interaction.response.send_message("Активные модераторы не найдены.", ephemeral=True)
-
-        select = discord.ui.Select(placeholder="Выберите сотрудника...", options=options)
-
-        async def select_callback(inter: discord.Interaction):
-            mod_id = int(select.values[0])
-            stats_data = get_moderator_stats(mod_id)
-            ratings = get_moderator_ratings(mod_id)
-            m_member = inter.guild.get_member(mod_id)
-            
-            e = discord.Embed(
-                title=f"Профиль модератора: {m_member.display_name}", 
-                color=discord.Color.from_rgb(54, 57, 63),
-                timestamp=datetime.now(timezone.utc)
-            )
-            e.set_thumbnail(url=m_member.display_avatar.url)
-            e.add_field(name="Общий рейтинг", value=f"**{stats_data['avg_rating']:.2f} / 5.0** ⭐", inline=True)
-            e.add_field(name="Закрыто тикетов", value=f"**{stats_data['total_tickets']}**", inline=True)
-            
-            if ratings:
-                rating_text = "\n".join([
-                    f"**{r[1]}** - {r[0]}⭐ ({r[2].split()[0]})"
-                    for r in ratings[:10]
-                ])
-                e.add_field(name="Последние оценки", value=rating_text, inline=False)
-            
-            e.set_footer(text=f"ID: {mod_id}")
-            await inter.response.send_message(embed=e, ephemeral=True)
-
-        select.callback = select_callback
-        view.add_item(select)
-        await interaction.response.send_message("Выберите модератора из списка:", view=view, ephemeral=True)
-
-    @discord.ui.button(label="Экспорт БД", style=discord.ButtonStyle.secondary, custom_id="stats_export", emoji="📥")
-    async def export_database(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message("Доступ запрещен.", ephemeral=True)
-            
-        if not os.path.exists(DB_FILE):
-            return await interaction.response.send_message("Файл базы не найден.", ephemeral=True)
-
-        file = discord.File(DB_FILE, filename=f"backup_db_{datetime.now().date()}.db")
-        await interaction.response.send_message("Копия базы данных подготовлена:", file=file, ephemeral=True)
-
-    @discord.ui.button(label="Сброс БД", style=discord.ButtonStyle.danger, custom_id="stats_reset_secure", emoji="<:error:1463122517102297214>")
-    async def secure_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not interaction.user.guild_permissions.administrator:
-            return await interaction.response.send_message("Только гл. администратор может сбросить базу.", ephemeral=True)
-        await interaction.response.send_modal(ResetPasswordModal(self.admin_password))
-
-
-class ResetPasswordModal(discord.ui.Modal, title="Подтверждение сброса базы"):
-    password_input = discord.ui.TextInput(
-        label="Введите пароль администратора",
-        placeholder="Пароль...",
-        required=True,
-        min_length=4
-    )
-
-    def __init__(self, correct_password):
-        super().__init__()
-        self.correct_password = correct_password
-
-    async def on_submit(self, interaction: discord.Interaction):
-        if self.password_input.value == self.correct_password:
-            conn = sqlite3.connect(DB_FILE)
-            cursor = conn.cursor()
-            cursor.execute('DELETE FROM ratings')
-            cursor.execute('DELETE FROM moderator_stats')
-            cursor.execute('DELETE FROM transcripts')
-            conn.commit()
-            conn.close()
-            await interaction.response.send_message("База данных успешно очищена.", ephemeral=True)
-        else:
-            await interaction.response.send_message("Неверный пароль! Доступ заблокирован.", ephemeral=True)
-
-
 async def generate_html_transcript(channel: TextChannel):
     messages = []
     async for msg in channel.history(limit=None, oldest_first=True):
@@ -657,8 +992,6 @@ class TicketsCog(commands.Cog):
         self.bot.add_view(TicketCloseView()) 
         self.bot.add_view(AdminStatsView())
 
-
-
     async def setup_ticket_panel(self):
         channel = self.bot.get_channel(TICKET_CHANNEL_ID) or await self.bot.fetch_channel(TICKET_CHANNEL_ID)
         if not channel:
@@ -666,7 +999,10 @@ class TicketsCog(commands.Cog):
             return
 
         try:
-            await channel.purge(limit=50)
+            # Удаляем все сообщения в канале
+            deleted = await channel.purge(limit=None)
+            print(f"[DEBUG] Удалено сообщений: {len(deleted)}")
+            
             embed = discord.Embed(
                 description=(
                     f"## <:emoji_name:1463153492595310644> | Shiwo Support\n"
@@ -687,6 +1023,7 @@ class TicketsCog(commands.Cog):
         except Exception as e:
             print(f"[ОШИБКА] setup_ticket_panel: {e}")
 
+
     async def setup_admin_stats_panel(self):
         channel = self.bot.get_channel(ADMIN_PANEL_CHANNEL_ID) or await self.bot.fetch_channel(ADMIN_PANEL_CHANNEL_ID)
         if not channel: return
@@ -697,8 +1034,8 @@ class TicketsCog(commands.Cog):
                 title="<:sheld:1464708871703761061> Админ-Панель Поддержки",
                 description=(
                     "Ниже представлены инструменты для контроля работы модераторов.\n\n"
-                    "<:sheld:1463129091451650069> **Вся статистика**: Общий рейтинг.\n"
-                    "<:sheld:1464710641817223410> **По модераторам**: Личный отчет.\n"
+                    "<:sheld:1463129091451650069> **Вся статистика**: Общий рейтинг с пагинацией.\n"
+                    "<:sheld:1464710641817223410> **По модераторам**: Личный отчет с поиском.\n"
                     "📥 **Экспорт БД**: Скачать базу данных.\n"
                     "<:error:1463122517102297214> **Сброс БД**: Очистить данные."
                 ),
@@ -708,6 +1045,7 @@ class TicketsCog(commands.Cog):
             print("[УСПЕХ] Админ-панель отправлена.")
         except Exception as e:
             print(f"[ОШИБКА] setup_admin_stats_panel: {e}")
+
 
 
 async def setup(bot):
