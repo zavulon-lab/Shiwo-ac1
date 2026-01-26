@@ -12,7 +12,8 @@ from discord import (
     PermissionOverwrite,
     CategoryChannel,
     TextChannel,
-    Color
+    Color, 
+    PartialEmoji
 )
 from datetime import datetime, timezone
 import asyncio
@@ -29,13 +30,13 @@ from config import (
 
 
 DB_FILE = "transcripts.db"
-ITEMS_PER_PAGE = 10  # Количество модераторов на странице
-ITEMS_PER_RATINGS_PAGE = 8  # Количество оценок на странице
+ITEMS_PER_PAGE = 10  
+ITEMS_PER_RATINGS_PAGE = 8  
 
 
-# ============ DATABASE INIT ============
+
 def init_db():
-    """Создает таблицы если их нет"""
+   
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     
@@ -71,7 +72,7 @@ def init_db():
         )
     ''')
     
-    # Добавляем индексы для оптимизации
+
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_moderator_id ON ratings(moderator_id)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_ticket_moderator ON transcripts(moderator_id)')
     
@@ -79,9 +80,9 @@ def init_db():
     conn.close()
 
 
-# ============ TRANSCRIPT FUNCTIONS ============
+
 def save_transcript_data(moderator_id: int, transcript_html: str, ticket_name: str):
-    """Сохраняет транскрипт в БД, возвращает ID"""
+    
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('''
@@ -95,7 +96,7 @@ def save_transcript_data(moderator_id: int, transcript_html: str, ticket_name: s
 
 
 def load_transcript_data(transcript_id: int):
-    """Загружает транскрипт по ID"""
+    
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('SELECT transcript, ticket_name FROM transcripts WHERE id = ?', (transcript_id,))
@@ -108,7 +109,7 @@ def load_transcript_data(transcript_id: int):
 
 
 def delete_transcript_data(transcript_id: int):
-    """Удаляет транскрипт по ID"""
+   
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('DELETE FROM transcripts WHERE id = ?', (transcript_id,))
@@ -117,7 +118,7 @@ def delete_transcript_data(transcript_id: int):
 
 
 def get_moderator_transcripts(moderator_id: int):
-    """Получить все транскрипты модератора"""
+   
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('''
@@ -130,9 +131,9 @@ def get_moderator_transcripts(moderator_id: int):
     return rows
 
 
-# ============ RATING FUNCTIONS ============
+
 def save_rating(moderator_id: int, user_id: int, rating: int, transcript_id: int, ticket_name: str):
-    """Сохраняет оценку и обновляет статистику"""
+   
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     
@@ -157,7 +158,7 @@ def save_rating(moderator_id: int, user_id: int, rating: int, transcript_id: int
 
 
 def get_moderator_stats(moderator_id: int):
-    """Получить статистику модератора"""
+    
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute('''
@@ -172,15 +173,13 @@ def get_moderator_stats(moderator_id: int):
 
 
 def get_all_moderator_stats(page: int = 1, limit: int = ITEMS_PER_PAGE):
-    """Получить статистику модераторов с пагинацией"""
+   
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     
-    # Получаем общее количество модераторов
     cursor.execute('SELECT COUNT(*) FROM moderator_stats')
     total_count = cursor.fetchone()[0]
     
-    # Рассчитываем offset
     offset = (page - 1) * limit
     
     cursor.execute('''
@@ -202,11 +201,10 @@ def get_all_moderator_stats(page: int = 1, limit: int = ITEMS_PER_PAGE):
 
 
 def get_moderator_ratings(moderator_id: int, page: int = 1, limit: int = ITEMS_PER_RATINGS_PAGE):
-    """Получить оценки модератора с пагинацией"""
+   
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     
-    # Получаем общее количество оценок
     cursor.execute('SELECT COUNT(*) FROM ratings WHERE moderator_id = ?', (moderator_id,))
     total_count = cursor.fetchone()[0]
     
@@ -231,17 +229,16 @@ def get_moderator_ratings(moderator_id: int, page: int = 1, limit: int = ITEMS_P
     }
 
 
-# ============ PAGINATION VIEWS ============
+
 
 class AllStatsNavigationView(View):
-    """View для навигации по всей статистике"""
+    
     def __init__(self, page: int, total_pages: int, guild: discord.Guild):
         super().__init__(timeout=300)
         self.page = page
         self.total_pages = total_pages
         self.guild = guild
         
-        # Отключаем кнопки если они неактуальны
         if page <= 1:
             self.prev_page.disabled = True
         if page >= total_pages:
@@ -270,7 +267,7 @@ class AllStatsNavigationView(View):
         stats = stats_result["data"]
         
         embed = discord.Embed(
-            title="📊 Общий отчет по команде",
+            title="<:stats:1463129091451650069> Общий отчет по команде",
             color=discord.Color.blue(),
             timestamp=datetime.now(timezone.utc)
         )
@@ -284,12 +281,11 @@ class AllStatsNavigationView(View):
                 avg = data["avg_rating"]
                 total = data["total_tickets"]
                 embed.add_field(
-                    name=f"👤 {name}",
-                    value=f"Рейтинг: **{avg:.2f}** ⭐ | Тикетов: **{total}**",
+                    name=f"<:name:1464710641817223410> {name}",
+                    value=f"Рейтинг: **{avg:.2f}** <:star:1465302165756186634> | Тикетов: **{total}**",
                     inline=False
                 )
         
-        # Обновляем view с новой страницей
         new_view = AllStatsNavigationView(page, stats_result["total_pages"], self.guild)
         new_view.page_button.label = f"Страница {page}/{stats_result['total_pages']}"
         
@@ -301,7 +297,7 @@ class AllStatsNavigationView(View):
 
 
 class ModeratorSelectView(View):
-    """View для выбора модератора с пагинацией"""
+    
     def __init__(self, guild: discord.Guild, page: int = 1, timeout: int = 60):
         super().__init__(timeout=timeout)
         self.guild = guild
@@ -314,8 +310,7 @@ class ModeratorSelectView(View):
 
 
     def populate_select(self):
-        """Заполняет select меню модераторами текущей страницы"""
-        # Удаляем старый select если существует
+        
         for item in self.children[:]:
             if isinstance(item, Select):
                 self.remove_item(item)
@@ -327,10 +322,10 @@ class ModeratorSelectView(View):
             member = self.guild.get_member(int(mod_id_str))
             if member:
                 data = stats[mod_id_str]
-                label = f"{member.display_name} ({data['avg_rating']:.2f}⭐)"
+                label = f"{member.display_name} ({data['avg_rating']:.2f})"
                 options.append(
                     discord.SelectOption(
-                        label=label[:100],  # Discord лимит на label
+                        label=label[:100],  
                         value=mod_id_str,
                         description=f"Тикетов: {data['total_tickets']}"
                     )
@@ -347,18 +342,18 @@ class ModeratorSelectView(View):
 
 
     def update_navigation_buttons(self):
-        """Обновляет состояние кнопок навигации"""
+      
         for item in self.children[:]:
             if isinstance(item, Button):
                 self.remove_item(item)
         
-        # Кнопка назад
+       
         prev_btn = discord.ui.Button(label="◀", style=discord.ButtonStyle.grey)
         prev_btn.callback = self.prev_page
         prev_btn.disabled = self.page <= 1
         self.add_item(prev_btn)
         
-        # Информация о странице
+        
         page_info = discord.ui.Button(
             label=f"Страница {self.page}/{self.total_pages}",
             style=discord.ButtonStyle.grey,
@@ -366,7 +361,7 @@ class ModeratorSelectView(View):
         )
         self.add_item(page_info)
         
-        # Кнопка вперед
+        
         next_btn = discord.ui.Button(label="▶", style=discord.ButtonStyle.grey)
         next_btn.callback = self.next_page
         next_btn.disabled = self.page >= self.total_pages
@@ -392,7 +387,7 @@ class ModeratorSelectView(View):
 
 
     async def select_callback(self, interaction: Interaction):
-        mod_id = int(self.children[0].values[0])  # Select всегда первый элемент
+        mod_id = int(self.children[0].values[0])  
         await self.show_moderator_details(interaction, mod_id)
 
 
@@ -413,7 +408,7 @@ class ModeratorSelectView(View):
         embed.set_thumbnail(url=m_member.display_avatar.url)
         embed.add_field(
             name="Общий рейтинг",
-            value=f"**{stats_data['avg_rating']:.2f} / 5.0** ⭐",
+            value=f"**{stats_data['avg_rating']:.2f} / 5.0** <:star:1465302165756186634>",
             inline=True
         )
         embed.add_field(
@@ -424,7 +419,7 @@ class ModeratorSelectView(View):
         
         if ratings_result["data"]:
             rating_text = "\n".join([
-                f"**{r[1]}** - {r[0]}⭐"
+                f"**{r[1]}** - {r[0]}<:star:1465302165756186634>"
                 for r in ratings_result["data"][:ITEMS_PER_RATINGS_PAGE]
             ])
             embed.add_field(name="Последние оценки", value=rating_text, inline=False)
@@ -438,7 +433,7 @@ class ModeratorSelectView(View):
 
 
 class RatingsNavigationView(View):
-    """View для навигации по оценкам модератора"""
+   
     def __init__(self, moderator_id: int, page: int, total_pages: int, guild: discord.Guild):
         super().__init__(timeout=300)
         self.moderator_id = moderator_id
@@ -482,7 +477,7 @@ class RatingsNavigationView(View):
         embed.set_thumbnail(url=m_member.display_avatar.url)
         embed.add_field(
             name="Общий рейтинг",
-            value=f"**{stats_data['avg_rating']:.2f} / 5.0** ⭐",
+            value=f"**{stats_data['avg_rating']:.2f} / 5.0** <:star:1465302165756186634>",
             inline=True
         )
         embed.add_field(
@@ -493,7 +488,7 @@ class RatingsNavigationView(View):
         
         if ratings_result["data"]:
             rating_text = "\n".join([
-                f"**{r[1]}** - {r[0]}⭐"
+                f"**{r[1]}** - {r[0]}<:star:1465302165756186634>"
                 for r in ratings_result["data"]
             ])
             embed.add_field(name="Оценки", value=rating_text, inline=False)
@@ -510,7 +505,6 @@ class RatingsNavigationView(View):
         await interaction.response.edit_message(embed=embed, view=new_view)
 
 
-# ============ ОСТАЛЬНЫЕ VIEWS ============
 
 class PostTicketActions(View):
     def __init__(self, moderator_id: int, transcript_id: int, ticket_name: str):
@@ -535,11 +529,12 @@ class PostTicketActions(View):
         await interaction.response.send_message("Вот ваша полная история переписки:", file=file, ephemeral=True)
 
 
-    @discord.ui.button(label="Оцените модератора", style=ButtonStyle.grey, emoji="⭐")
+    @discord.ui.button(label="Оцените модератора", style=ButtonStyle.grey, emoji="<:star:1465302165756186634>")
     async def rate_service(self, interaction: Interaction, button: Button):
         rate_view = View()
         for i in range(1, 6):
-            btn = Button(label=f"{i} ⭐", style=ButtonStyle.blurple)
+            star = PartialEmoji.from_str("<:star:1465302165756186634>")
+            btn = Button(label=f"{i}", emoji=star, style=ButtonStyle.blurple)
             
             async def create_callback(rating):
                 async def callback(inter: Interaction):
@@ -551,7 +546,7 @@ class PostTicketActions(View):
                         self.ticket_name
                     )
                     
-                    await inter.response.send_message(f"Спасибо за оценку {rating}⭐!", ephemeral=True)
+                    await inter.response.send_message(f"Спасибо за оценку {rating}<:star:1465302165756186634>!", ephemeral=True)
                 
                 return callback
 
@@ -566,7 +561,6 @@ class PostTicketActions(View):
         )
 
 
-# ============ ADMIN PANEL VIEW ============
 
 class AdminStatsView(discord.ui.View):
     def __init__(self, *args, **kwargs):
@@ -588,7 +582,7 @@ class AdminStatsView(discord.ui.View):
             return await interaction.response.send_message("Статистика пуста.", ephemeral=True)
         
         embed = discord.Embed(
-            title="📊 Общий отчет по команде",
+            title="<:stats:1463129091451650069> Общий отчет по команде",
             color=discord.Color.blue(),
             timestamp=datetime.now(timezone.utc)
         )
@@ -599,8 +593,8 @@ class AdminStatsView(discord.ui.View):
             avg = data["avg_rating"]
             total = data["total_tickets"]
             embed.add_field(
-                name=f"👤 {name}",
-                value=f"Рейтинг: **{avg:.2f}** ⭐ | Тикетов: **{total}**",
+                name=f"<:name:1464710641817223410> {name}",
+                value=f"Рейтинг: **{avg:.2f}** <:star:1465302165756186634> | Тикетов: **{total}**",
                 inline=False
             )
         
@@ -691,10 +685,6 @@ class ResetPasswordModal(discord.ui.Modal, title="Подтверждение с�
             await interaction.response.send_message("Неверный пароль! Доступ заблокирован.", ephemeral=True)
 
 
-# ============ ОСТАЛЬНОЙ КОД (TRANSCRIPT, CLOSE VIEWS) ============
-# Здесь вставьте остальные классы: TicketCloseView, CloseReasonModal, TicketSelectView, TicketsCog
-# и функции: generate_html_transcript
-
 
 class TicketCloseView(View):
     def __init__(self, ticket_channel: TextChannel = None, opener: discord.Member = None):
@@ -702,11 +692,23 @@ class TicketCloseView(View):
         self.ticket_channel = ticket_channel
         self.opener = opener
 
+    def is_staff(self, member: discord.Member) -> bool:
+        """Вспомогательная функция для проверки прав"""
+        # Проверка на администратора
+        if member.guild_permissions.administrator:
+            return True
+        # Проверка на наличие роли поддержки по ID
+        return any(role.id == SUPPORT_ROLE_ID for role in member.roles)
 
     @discord.ui.button(label="Закрыть", style=ButtonStyle.red, custom_id="close_ticket_btn")
     async def close_ticket(self, interaction: Interaction, button: Button):
+        # 1. Проверка прав (Админ или Саппорт)
+        if not self.is_staff(interaction.user):
+            return await interaction.response.send_message("У вас нет прав для закрытия тикета! Это может сделать только поддержка.", ephemeral=True)
+
         if not self.ticket_channel:
             self.ticket_channel = interaction.channel
+        
         if not self.opener:
             try:
                 user_id = int(self.ticket_channel.topic.split("user_id=")[1].split("|")[0])
@@ -714,60 +716,61 @@ class TicketCloseView(View):
             except:
                 pass
 
-        if not (interaction.user.guild_permissions.administrator or interaction.user == self.opener):
-            return await interaction.response.send_message("У вас нет прав!", ephemeral=True)
-
         await interaction.response.defer()
 
+        # --- Логика генерации транскрипта и логирования ---
         html_data = await generate_html_transcript(self.ticket_channel)
         
         stats = {}
         async for msg in self.ticket_channel.history(limit=None):
             if not msg.author.bot:
                 stats[msg.author.display_name] = stats.get(msg.author.display_name, 0) + 1
-        participants_text = "\n".join([f"{n} - {c} сообщений " for n, c in stats.items()]) or "Нет сообщений"
+        participants_text = "\n".join([f"{n} - {c} сообщений" for n, c in stats.items()]) or "Нет сообщений"
 
         log_channel = interaction.guild.get_channel(TICKET_LOG_CHANNEL_ID)
         if log_channel:
             file = discord.File(io.BytesIO(html_data.encode('utf-8')), filename=f"archive-{self.ticket_channel.name}.html")
             log_embed = discord.Embed(
                 title="Архив тикета",
-                description=f"**Канал:** `{self.ticket_channel.name}`\n**Закрыл:** {interaction.user.mention} ({interaction.user.id})\n**Причина:** Без указания",
+                description=f"**Канал:** `{self.ticket_channel.name}`\n**Закрыл:** {interaction.user.mention}\n**Причина:** Без указания",
                 color=discord.Color.from_rgb(54, 57, 63),
                 timestamp=datetime.now(timezone.utc)
             )
             log_embed.set_thumbnail(url=interaction.user.display_avatar.url)
             await log_channel.send(embed=log_embed, file=file)
 
-        user_embed = discord.Embed(
-            description=f"## <:emoji_name:1463153492595310644> Закрытый тикет",
-            color=Color.from_rgb(54, 57, 63),
-            timestamp=datetime.now(timezone.utc)
-        )
-        user_embed.add_field(name="Название тикета", value=f"`{self.ticket_channel.name}`", inline=True)
-        user_embed.add_field(name="Кто закрыл", value=interaction.user.mention, inline=True)
-        user_embed.add_field(name="Участники", value=participants_text, inline=True)
-        user_embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        user_embed.set_footer(text=f" {interaction.guild.name}", icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
+        # Отправка уведомления пользователю
+        if self.opener:
+            user_embed = discord.Embed(
+                description=f"## <:emoji_name:1463153492595310644> Закрытый тикет",
+                color=discord.Color.from_rgb(54, 57, 63),
+                timestamp=datetime.now(timezone.utc)
+            )
+            user_embed.add_field(name="Название тикета", value=f"`{self.ticket_channel.name}`", inline=True)
+            user_embed.add_field(name="Кто закрыл", value=interaction.user.mention, inline=True)
+            user_embed.add_field(name="Участники", value=participants_text, inline=True)
+            user_embed.set_thumbnail(url=interaction.user.display_avatar.url)
+            
+            try:
+                transcript_id = save_transcript_data(interaction.user.id, html_data, self.ticket_channel.name)
+                view = PostTicketActions(interaction.user.id, transcript_id, self.ticket_channel.name)
+                await self.opener.send(embed=user_embed, view=view)
+            except: 
+                pass
 
-        try:
-            transcript_id = save_transcript_data(interaction.user.id, html_data, self.ticket_channel.name)
-            view = PostTicketActions(interaction.user.id, transcript_id, self.ticket_channel.name)
-            await self.opener.send(embed=user_embed, view=view)
-        except: pass
-
-        await interaction.followup.send("Канал удаляется...")
+        await interaction.followup.send("Тикет будет удален через 5 секунд.")
         await asyncio.sleep(5)
         await self.ticket_channel.delete()
 
-
     @discord.ui.button(label="Закрыть с причиной", style=ButtonStyle.grey, custom_id="close_with_reason_btn")
     async def close_with_reason(self, interaction: Interaction, button: Button):
+        # Проверка прав (Админ или Саппорт)
+        if not self.is_staff(interaction.user):
+            return await interaction.response.send_message("Только поддержка может это делать.", ephemeral=True)
+            
         if not self.ticket_channel:
             self.ticket_channel = interaction.channel
             
-        if not (interaction.user.guild_permissions.administrator or interaction.user.guild_permissions.manage_channels):
-            return await interaction.response.send_message("Только поддержка может это делать.", ephemeral=True)
         await interaction.response.send_modal(CloseReasonModal(self.ticket_channel, interaction.user))
 
 
@@ -800,7 +803,7 @@ class CloseReasonModal(Modal, title="Укажите причину закрыт�
         if log_channel:
             file = discord.File(io.BytesIO(html_data.encode('utf-8')), filename=f"archive-{self.ticket_channel.name}.html")
             log_embed = discord.Embed(
-                title="🗄️ Архив тикета",
+                title="Архив тикета",
                 description=f"**Канал:** `{self.ticket_channel.name}`\n**Закрыл:** {interaction.user.mention}\n**Причина:** {reason_text}",
                 color=discord.Color.from_rgb(54, 57, 63),
                 timestamp=datetime.now(timezone.utc)
@@ -999,7 +1002,6 @@ class TicketsCog(commands.Cog):
             return
 
         try:
-            # Удаляем все сообщения в канале
             deleted = await channel.purge(limit=None)
             print(f"[DEBUG] Удалено сообщений: {len(deleted)}")
             
@@ -1013,9 +1015,10 @@ class TicketsCog(commands.Cog):
             )
             embed.add_field(
                 name="<:emoji_name:1463153494373437520> Прежде чем создавать тикет:",
-                value="• Проверьте нашу [документацию](#)\n• Поищите существующие решения",
+                value="• Проверьте нашу [документацию](https://shiwo-ac.com/au/privacy)\n• [Поищите существующие решения](https://discord.com/channels/1450568583930318930/1457114969765187767)",
                 inline=False
             )
+
             embed.set_image(url="https://media.discordapp.net/attachments/1462165491278938204/1463154984437809237/24237F17-FFC4-4390-8699-7A00C5798E47.png")
             
             await channel.send(embed=embed, view=TicketSelectView())
@@ -1036,7 +1039,7 @@ class TicketsCog(commands.Cog):
                     "Ниже представлены инструменты для контроля работы модераторов.\n\n"
                     "<:sheld:1463129091451650069> **Вся статистика**: Общий рейтинг с пагинацией.\n"
                     "<:sheld:1464710641817223410> **По модераторам**: Личный отчет с поиском.\n"
-                    "📥 **Экспорт БД**: Скачать базу данных.\n"
+                    "<:export:1465301465080795190>**Экспорт БД**: Скачать базу данных.\n"
                     "<:error:1463122517102297214> **Сброс БД**: Очистить данные."
                 ),
                 color=discord.Color.from_rgb(54, 57, 63)

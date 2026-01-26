@@ -2,6 +2,7 @@
 import discord
 from discord.ext import commands
 import asyncio
+from config import FAQ_ID
 
 
 class ClientSelectView(discord.ui.View):
@@ -600,7 +601,7 @@ class ClientSelectView(discord.ui.View):
 class ClientsPanelCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.target_channel_id = 1462154123297427496 
+        self.target_channel_id = FAQ_ID 
 
     async def get_target_channel(self) -> discord.TextChannel | None:
         try:

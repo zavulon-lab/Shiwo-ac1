@@ -16,7 +16,7 @@ class UserLogsCog(commands.Cog):
         self.bot = bot
 
     async def send_log(self, channel_id: int, embed: discord.Embed):
-        """Отправляет лог в указанный канал, если канал существует"""
+        
         if not channel_id:
             return
         channel = self.bot.get_channel(channel_id)
@@ -45,7 +45,7 @@ class UserLogsCog(commands.Cog):
         embed.add_field(name="Информация", value=info_value, inline=True)
         
         channel_value = (
-            f"<:link:1463122462995648662> Канал: {message.channel.mention}\n"
+            f"<:link:1464703359033282703> Канал: {message.channel.mention}\n"
             f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
         )
         embed.add_field(name="Детали", value=channel_value, inline=True)
@@ -107,15 +107,15 @@ class UserLogsCog(commands.Cog):
         if before.channel is None:
             embed.description = f"<:join:1463115113115680873> **Подключение к голосовому каналу**"
             embed.color = discord.Color.green()
-            channel_info = f"<:volume:1464700439407890656> Канал: {after.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            channel_info = f"Канал: {after.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
         elif after.channel is None:
             embed.description = f"<:leave_icon:1463115110980780198> **Отключение от голосового канала**"
             embed.color = discord.Color.red()
-            channel_info = f"<:volume:1464700439407890656> Канал: {before.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            channel_info = f"Канал: {before.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
         else:
             embed.description = f"<:arrow:1463115113115680873> **Перемещение между каналами**"
             embed.color = discord.Color.from_rgb(54, 57, 63)
-            channel_info = f"<:volume:1464700439407890656> {before.channel.name} → {after.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            channel_info = f"{before.channel.name} → {after.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
 
         embed.add_field(name="Информация", value=info_value, inline=True)
         embed.add_field(name="Детали", value=channel_info, inline=True)
@@ -158,7 +158,7 @@ class UserLogsCog(commands.Cog):
 
             if added or removed:
                 embed = discord.Embed(
-                    description=f"<:roles:1463115113115680873> **Обновление ролей**",
+                    description=f"<:roles:1465289174906175499> **Обновление ролей**",
                     color=discord.Color.from_rgb(54, 57, 63)
                 )
                 
@@ -168,12 +168,19 @@ class UserLogsCog(commands.Cog):
                     f"<:id_card:1463122452790902912> ID: {after.id}"
                 )
                 embed.add_field(name="Информация", value=info_value, inline=True)
+                moderator_value = "Не найден"
+                async for entry in after.guild.audit_logs(limit=5, action=discord.AuditLogAction.member_role_update):
+                    if entry.target.id == after.id and entry.created_at.timestamp() >= (ts - 5):
+                        moderator_value = f"{entry.user.mention}"
+                        break
+
+                embed.add_field(name="Модератор", value=moderator_value, inline=True)
                 embed.add_field(name="Время", value=f"<:clock:1464700439407890656> <t:{ts}:R>", inline=True)
                 
                 if added:
-                    embed.add_field(name="<:plus:1463115113115680873> Выданы", value=", ".join(r.mention for r in added), inline=False)
+                    embed.add_field(name="<:plus:1465289172079214653> Выданы", value=", ".join(r.mention for r in added), inline=False)
                 if removed:
-                    embed.add_field(name="<:minus:1463115113115680873> Сняты", value=", ".join(r.mention for r in removed), inline=False)
+                    embed.add_field(name="<:minus:1465289173685502083> Сняты", value=", ".join(r.mention for r in removed), inline=False)
                 
                 embed.set_thumbnail(url=after.display_avatar.url)
                 embed.set_footer(text=f"User ID: {after.id}")
@@ -182,13 +189,12 @@ class UserLogsCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        # Вычисляем возраст аккаунта
         now = datetime.now(timezone.utc)
         diff = now - member.created_at
         years = diff.days // 365
         days = diff.days % 365
         
-        # Формируем строку возраста
+        
         age_str = f"**{years} лет, {days} дней**" if years > 0 else f"**{days} дней**"
 
         embed = discord.Embed(
@@ -196,7 +202,7 @@ class UserLogsCog(commands.Cog):
             color=discord.Color.green()
         )
 
-        # Поле "Информация" (слева)
+        
         info_value = (
             f"Участник: {member.mention}\n"
             f"<:link:1463122462995648662> login: {member.name}\n"
@@ -204,14 +210,14 @@ class UserLogsCog(commands.Cog):
         )
         embed.add_field(name="Информация", value=info_value, inline=True)
 
-        # Поле "Возраст аккаунта" (справа)
+        
         embed.add_field(
             name="Возраст аккаунта", 
             value=f"<:clock:1464700439407890656> {age_str}", 
             inline=True
         )
 
-        # Нижняя строка с количеством участников
+        
         embed.set_footer(text=f"Количество участников: {member.guild.member_count}")
 
         await self.send_log(LOG_MODERATION_CHANNEL_ID, embed)
@@ -226,7 +232,6 @@ class UserLogsCog(commands.Cog):
         days = diff.days % 365
         age_str = f"**{years} лет, {days} дней**" if years > 0 else f"**{days} дней**"
 
-        # Проверяем был ли кик
         kicked = False
         async for entry in member.guild.audit_logs(limit=5, action=discord.AuditLogAction.kick):
             if entry.target.id == member.id and (datetime.now(timezone.utc) - entry.created_at).total_seconds() < 5:
@@ -254,7 +259,6 @@ class UserLogsCog(commands.Cog):
                 kicked = True
                 break
 
-        # Если не кик — то выход
         if not kicked:
             embed = discord.Embed(
                 description=f"<:leave_icon:1463115110980780198> {member.mention} вышел с Discord сервера",

@@ -40,7 +40,6 @@ class WelcomeCog(commands.Cog):
             name="<:rules:1464703359033282703> Правила сервера",
             value=(
                 f"Пожалуйста прочитайте {rules_channel.mention}\n"
-                "чтобы сохранить комьюнити безопасным и дружелюбным."
                 if rules_channel else
                 "Пожалуйста прочитайте канал с правилами."
             ),

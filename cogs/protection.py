@@ -5,20 +5,62 @@ from discord.ext import commands
 from discord.ui import View, Button, Select, Modal, TextInput
 from discord import Interaction, ButtonStyle, SelectOption, AuditLogEntry, Color
 from datetime import datetime, timezone
-import json
-import os
+import sqlite3
+from pathlib import Path
 import asyncio
 
 from config import PROTECTION_ADMIN_CHANNEL_ID, PROTECTION_LOG_CHANNEL_ID, SUPPORT_ROLE_ID
 
-CONFIG_FILE = "protection_config.json"
-VIOLATIONS_FILE = "violations_count.json"
+DB_PATH = Path("protection.db")
+
+
+
+def init_protection_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS protection_config (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
+    
+   
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS whitelist (
+            user_id INTEGER PRIMARY KEY
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS violations (
+            user_id INTEGER PRIMARY KEY,
+            total_warns INTEGER DEFAULT 0,
+            actions_progress TEXT
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
 
 
 def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+    
+    init_protection_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT value FROM protection_config WHERE key = ?', ('config',))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        import json
+        return json.loads(row[0])
+    
+    import json
     default = {
         "events": {
             "channel_delete": "ban",
@@ -37,15 +79,108 @@ def load_config():
     return default
 
 
+def save_config(config):
+    
+    import json
+    init_protection_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        'INSERT OR REPLACE INTO protection_config (key, value) VALUES (?, ?)',
+        ('config', json.dumps(config, ensure_ascii=False))
+    )
+    
+    conn.commit()
+    conn.close()
+
+
 def load_violations():
-    if os.path.exists(VIOLATIONS_FILE):
-        with open(VIOLATIONS_FILE, "r") as f:
-            return json.load(f)
-    return {}
+    
+    init_protection_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT user_id, total_warns, actions_progress FROM violations')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    import json
+    violations = {}
+    for user_id, total_warns, actions_progress_str in rows:
+        violations[str(user_id)] = {
+            "total_warns": total_warns,
+            "actions_progress": json.loads(actions_progress_str) if actions_progress_str else {}
+        }
+    
+    return violations
+
 
 def save_violations(data):
-    with open(VIOLATIONS_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+   
+    import json
+    init_protection_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('DELETE FROM violations')
+    
+    for user_id_str, violation_data in data.items():
+        user_id = int(user_id_str)
+        total_warns = violation_data.get("total_warns", 0)
+        actions_progress = json.dumps(violation_data.get("actions_progress", {}))
+        
+        cursor.execute(
+            'INSERT INTO violations (user_id, total_warns, actions_progress) VALUES (?, ?, ?)',
+            (user_id, total_warns, actions_progress)
+        )
+    
+    conn.commit()
+    conn.close()
+
+
+def load_whitelist():
+    
+    init_protection_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT user_id FROM whitelist')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [row[0] for row in rows]
+
+
+def add_to_whitelist(user_id):
+   
+    init_protection_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('INSERT OR IGNORE INTO whitelist (user_id) VALUES (?)', (user_id,))
+    
+    conn.commit()
+    conn.close()
+
+
+def remove_from_whitelist(user_id):
+   
+    init_protection_db()
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute('DELETE FROM whitelist WHERE user_id = ?', (user_id,))
+    
+    conn.commit()
+    conn.close()
+
 
 EVENT_EMOJIS = {
     "channel_delete": "<:emoji_name:1463122455961927711>",
@@ -57,6 +192,7 @@ EVENT_EMOJIS = {
     "everyone_ping": "<:everyone_icon:1463122447791296648>",
     "here_ping": "<:here_icon:1463122457824067755>"
 }
+
 ACTION_NAMES = {
     "ban": "Бан",
     "kick": "Кик",
@@ -65,6 +201,7 @@ ACTION_NAMES = {
     "none": "Без действий",
     "delete": "Удалять"
 }
+
 ACTION_EMOJIS = {
     "ban": "<:emoji_name:1463263884810125527>",
     "kick": "<:emoji_name:1463263884810125527>",
@@ -72,11 +209,6 @@ ACTION_EMOJIS = {
     "tempban": "<:emoji_name:1463263883056644181>",
     "none": "<:emoji_name:1463263885887799533>"
 }
-
-def save_config(config):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, ensure_ascii=False, indent=4)
-
 
 config = load_config()
 
@@ -170,16 +302,21 @@ class WhitelistModal(Modal, title="Добавить в вайтлист"):
             await interaction.response.send_message("Неверный ID.", ephemeral=True)
             return
 
-        if uid in config["whitelist"]:
+        whitelist = load_whitelist()
+        if uid in whitelist:
             await interaction.response.send_message("Уже в вайтлисте.", ephemeral=True)
             return
 
-        config["whitelist"].append(uid)
+        add_to_whitelist(uid)
+        
+        config["whitelist"] = load_whitelist()
         save_config(config)
+        
         member = interaction.guild.get_member(uid)
         name = member.display_name if member else "Неизвестно"
         await interaction.response.send_message(f" {name} (`{uid}`) добавлен в вайтлист.", ephemeral=True)
         await update_protection_panel(interaction.guild)
+
 
 class RemoveWhitelistModal(Modal, title="Удалить из вайтлиста"):
     user_id = TextInput(label="ID пользователя", placeholder="Введите ID для удаления", required=True)
@@ -191,12 +328,16 @@ class RemoveWhitelistModal(Modal, title="Удалить из вайтлиста"
             await interaction.response.send_message(" Неверный ID. Введите только цифры.", ephemeral=True)
             return
 
-        if uid not in config["whitelist"]:
+        whitelist = load_whitelist()
+        if uid not in whitelist:
             await interaction.response.send_message(" Этот ID не найден в вайтлисте.", ephemeral=True)
             return
 
-        config["whitelist"].remove(uid)
+        remove_from_whitelist(uid)
+        
+        config["whitelist"] = load_whitelist()
         save_config(config)
+        
         member = interaction.guild.get_member(uid)
         name = member.display_name if member else "Неизвестно"
         await interaction.response.send_message(f" Пользователь **{name}** (`{uid}`) удалён из вайтлиста.", ephemeral=True)
@@ -215,7 +356,7 @@ class ProtectionConfigView(View):
                 label="Удаление канала", 
                 value="channel_delete",
                 description="Массовое удаление текстовых каналов",
-                emoji="<:emoji_name:1463122455961927711>" # Ваш ID здесь
+                emoji="<:emoji_name:1463122455961927711>"
             ),
             discord.SelectOption(
                 label="Создание канала", 
@@ -272,24 +413,39 @@ class ProtectionConfigView(View):
 
     @discord.ui.button(label="Вайтлист", style=ButtonStyle.grey, custom_id="protection_whitelist")
     async def whitelist_button(self, interaction: Interaction, button: Button):
-        text = "Вайтлист пуст." if not config["whitelist"] else "\n".join(f"• <@{uid}> (`{uid}`)" for uid in config["whitelist"][:20])
-        if len(config["whitelist"]) > 20:
-            text += f"\n... и ещё {len(config['whitelist']) - 20}"
+        if interaction.user != interaction.guild.owner:
+            await interaction.response.send_message("Только владелец сервера может управлять вайтлистом.", ephemeral=True)
+            return
+        
+        whitelist = load_whitelist()
+        text = "Вайтлист пуст." if not whitelist else "\n".join(f"• <@{uid}> (`{uid}`)" for uid in whitelist[:20])
+        if len(whitelist) > 20:
+            text += f"\n... и ещё {len(whitelist) - 20}"
         embed = discord.Embed(title="Вайтлист защиты", description=text, color=discord.Color.from_rgb(54, 57, 63))
-        view = WhitelistView()
+        view = WhitelistView(interaction.guild.owner.id) 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
+
 class WhitelistView(View):
-    def __init__(self):
+    def __init__(self, owner_id):
         super().__init__(timeout=300)
+        self.owner_id = owner_id
 
     @discord.ui.button(label="Добавить", style=ButtonStyle.green)
     async def add(self, interaction: Interaction, button: Button):
+        if interaction.user.id != self.owner_id:
+            await interaction.response.send_message("Только владелец сервера может это делать.", ephemeral=True)
+            return
         await interaction.response.send_modal(WhitelistModal())
+    
     @discord.ui.button(label="Удалить пользователя", style=ButtonStyle.red)
     async def remove(self, interaction: Interaction, button: Button):
+        if interaction.user.id != self.owner_id:
+            await interaction.response.send_message("Только владелец сервера может это делать.", ephemeral=True)
+            return
         await interaction.response.send_modal(RemoveWhitelistModal())
+
 
 
 async def update_protection_panel(guild: discord.Guild):
@@ -299,7 +455,6 @@ async def update_protection_panel(guild: discord.Guild):
         return
 
     try:
-        # --- Сбор текста конфигурации ---
         config_lines = []
         for event_key, data in config["events"].items():
             if isinstance(data, dict):
@@ -315,13 +470,11 @@ async def update_protection_panel(guild: discord.Guild):
             action_name = ACTION_NAMES.get(action, action)
             event_emoji = EVENT_EMOJIS.get(event_key, "⚙️")
             
-            # Тот самый динамический эмодзи наказания
             action_emoji = ACTION_EMOJIS.get(action, "❓")
             
             time_info = f" ({duration}м)" if action == "tempban" else ""
 
             if action != "none":
-                # Заменяем старый limit_icon на динамический action_emoji
                 limit_text = f"  {action_emoji} `{action_name}{time_info}` `{limit}`"
             else:
                 limit_text = f"  {action_emoji} `{action_name}`"
@@ -331,16 +484,13 @@ async def update_protection_panel(guild: discord.Guild):
 
         config_text = "\n".join(config_lines)
 
-        # --- Создание эмбеда ---
         embed = discord.Embed(color=discord.Color.from_rgb(54, 57, 63))
         embed.description = "## Панель управления защитой"
 
-        # Разбиваем конфиг на части по 1024 символа
         current_field_value = ""
         first_field = True
 
         for line in config_lines:
-            # Проверяем, не превысит ли добавление новой строки лимит в 1020 символов (с запасом)
             if len(current_field_value) + len(line) + 1 > 1020:
                 embed.add_field(
                     name="**```Конфигурация защиты```**" if first_field else "\u200b",
@@ -352,7 +502,6 @@ async def update_protection_panel(guild: discord.Guild):
             else:
                 current_field_value += line + "\n"
 
-        # Добавляем последний накопившийся блок текста
         if current_field_value:
             embed.add_field(
                 name="**```Конфигурация защиты```**" if first_field else "\u200b",
@@ -360,7 +509,6 @@ async def update_protection_panel(guild: discord.Guild):
                 inline=False
             )
 
-        # Поле с терминами
         terms_text = (
             "**Бан** — Блокировка и снятие ролей\n"
             "**Кик** — Исключение из сервера\n"
@@ -377,23 +525,19 @@ async def update_protection_panel(guild: discord.Guild):
 
         view = ProtectionConfigView()
 
-        # --- ЛОГИКА ОБНОВЛЕНИЯ ИЛИ ПЕРЕОТПРАВКИ ---
         message_id = config.get("panel_message_id")
         panel_processed = False
 
         if message_id:
             try:
-                # Пытаемся найти и отредактировать
                 old_message = await channel.fetch_message(message_id)
                 await old_message.edit(embed=embed, view=view)
                 panel_processed = True
                 print(f"[ЗАЩИТА] Панель обновлена (ID: {message_id})")
             except (discord.NotFound, discord.HTTPException):
-                # Если сообщение удалено вручную, идем дальше к отправке новой панели
                 print("[ЗАЩИТА] Старая панель не найдена (удалена), создаю новую...")
                 panel_processed = False
 
-        # Если сообщения не было в конфиге ИЛИ его не удалось отредактировать (удалено)
         if not panel_processed:
             new_message = await channel.send(embed=embed, view=view)
             config["panel_message_id"] = new_message.id
@@ -402,6 +546,7 @@ async def update_protection_panel(guild: discord.Guild):
 
     except Exception as e:
         print(f"[КРИТИЧЕСКАЯ ОШИБКА ПАНЕЛИ] {e}")
+
 
 class ActionConfigModal(Modal):
     def __init__(self, event_key, action):
@@ -416,7 +561,6 @@ class ActionConfigModal(Modal):
         )
         self.add_item(self.limit_input)
 
-        # Если выбран временный бан, добавляем поле для времени
         if self.action == "tempban":
             self.time_input = TextInput(
                 label="Длительность (в минутах)",
@@ -431,7 +575,7 @@ class ActionConfigModal(Modal):
             duration_val = 0
             if self.action == "tempban":
                 duration_val = int(self.time_input.value.strip())
-                if duration_val > 40320: duration_val = 40320 # Ограничение Discord API (28 дней)
+                if duration_val > 40320: duration_val = 40320
             
             if limit_val < 1: raise ValueError
         except ValueError:
@@ -440,11 +584,10 @@ class ActionConfigModal(Modal):
         config["events"][self.event_key] = {
             "action": self.action,
             "limit": limit_val,
-            "duration": duration_val # Сохраняем минуты
+            "duration": duration_val
         }
         save_config(config)
 
-        # Текст для подтверждения
         time_text = f"\nВремя изоляции: `{duration_val}` мин." if self.action == "tempban" else ""
         
         embed = discord.Embed(
@@ -459,6 +602,7 @@ class ActionConfigModal(Modal):
         await interaction.response.send_message(embed=embed, ephemeral=True)
         await update_protection_panel(interaction.guild)
 
+
 class ProtectionCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -466,13 +610,7 @@ class ProtectionCog(commands.Cog):
         self.violations = load_violations()
         self.user_messages = {}
         
-        # Загружаем конфиг защиты
-        try:
-            with open("protection_config.json", "r", encoding="utf-8") as f:
-                self.protection_config = json.load(f)
-        except:
-            self.protection_config = {}
-
+        init_protection_db()
 
     async def setup_protection_panel(self):
         
@@ -488,11 +626,11 @@ class ProtectionCog(commands.Cog):
         user = entry.user if entry else message.author
         guild = entry.guild if entry else message.guild
 
+        whitelist = load_whitelist()
         
-        if user.bot or user == guild.owner or user.id in config["whitelist"]:
+        if user.bot or user == guild.owner or user.id in whitelist:
             return
 
-        
         action_type = None
         if entry:
             mapping = {
@@ -510,7 +648,6 @@ class ProtectionCog(commands.Cog):
         if not action_type:
             return
 
-        
         setting_raw = config["events"].get(action_type, "none")
         if isinstance(setting_raw, dict):
             setting = setting_raw.get("action", "none")
@@ -522,7 +659,6 @@ class ProtectionCog(commands.Cog):
         if setting == "none":
             return
 
-       
         uid_str = str(user.id)
         if uid_str not in self.violations:
             self.violations[uid_str] = {"total_warns": 0, "actions_progress": {}}
@@ -584,31 +720,30 @@ class ProtectionCog(commands.Cog):
                     await guild.kick(user, reason=f"Защита: Суммарный лимит нарушений [2/2]")
                     punishment = "кикнут (стак нарушений)"
                     
-                    
                     self.violations[uid_str] = {"total_warns": 0, "actions_progress": {}}
                     save_violations(self.violations)
                     success = True
-                elif setting == "tempban":
-                    duration_min = int(setting_raw.get("duration", 60))
-                    until = datetime.now(timezone.utc) + discord.utils.datetime.timedelta(minutes=duration_min)
-                    
-                    try:
-                        await user.timeout(until, reason=f"Защита: Лимит {limit} для {action_type}")
-                        punishment = f"изоляция на {duration_min} мин."
-                        success = True
-                    except discord.Forbidden:
-                        # Если прав на таймаут нет (например, цель — админ), пробуем бан
-                        await guild.ban(user, reason=f"Защита: Не удалось выдать таймаут, выдан бан. Лимит {limit}")
-                        punishment = "забанен (ошибка прав таймаута)"
-                        success = True
-                if message and success:
-                    try: await message.delete()
-                    except: pass
+            
+            elif setting == "tempban":
+                duration_min = int(setting_raw.get("duration", 60))
+                until = datetime.now(timezone.utc) + discord.utils.datetime.timedelta(minutes=duration_min)
+                
+                try:
+                    await user.timeout(until, reason=f"Защита: Лимит {limit} для {action_type}")
+                    punishment = f"изоляция на {duration_min} мин."
+                    success = True
+                except discord.Forbidden:
+                    await guild.ban(user, reason=f"Защита: Не удалось выдать таймаут, выдан бан. Лимит {limit}")
+                    punishment = "забанен (ошибка прав таймаута)"
+                    success = True
+            
+            if message and success:
+                try: await message.delete()
+                except: pass
 
         except discord.Forbidden:
             print(f"[ОШИБКА] Недостаточно прав для наказания {user.id}")
         
-       
         if success:
             log_channel = guild.get_channel(PROTECTION_LOG_CHANNEL_ID)
             if log_channel:
@@ -623,20 +758,17 @@ class ProtectionCog(commands.Cog):
     async def on_audit_log_entry_create(self, entry: AuditLogEntry):
         await self.handle_action(entry=entry)  
      
-
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
             return
         
-        # Пропускаем админов и роль поддержки для всей пассивной защиты
+        whitelist = load_whitelist()
         if message.author.guild_permissions.administrator or any(role.id == SUPPORT_ROLE_ID for role in message.author.roles):
             await self.handle_action(message=message)
             return
         
-        # === ПАССИВНАЯ ЗАЩИТА ===
         
-        # 1. Защита от инвайтов
         if "discord.gg/" in message.content or "discord.com/invite" in message.content:
             try:
                 await message.delete()
@@ -644,7 +776,6 @@ class ProtectionCog(commands.Cog):
                 pass
             return
         
-        # 2. Защита от @everyone/@here
         if "@everyone" in message.content or "@here" in message.content:
             try:
                 await message.delete()
@@ -652,8 +783,6 @@ class ProtectionCog(commands.Cog):
                 pass
             return
         
-        # 3. Защита от спама (5+ сообщений за 8 сек)
-                # 3. Защита от спама (5+ сообщений за 8 сек)
         uid = message.author.id
         now = time.time()
         
@@ -665,7 +794,6 @@ class ProtectionCog(commands.Cog):
         
         if len(self.user_messages[uid]) >= 5:
             try:
-                # Таймаут на 5 минут
                 until = datetime.now(timezone.utc) + timedelta(minutes=5)
                 await message.author.timeout(until, reason="Пассивная защита: спам сообщениями")
                 
@@ -674,8 +802,6 @@ class ProtectionCog(commands.Cog):
                 pass
             return
 
-        
-        # === КОНЕЦ ПАССИВНОЙ ЗАЩИТЫ ===
         
         await self.handle_action(message=message)
 
