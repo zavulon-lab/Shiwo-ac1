@@ -1,0 +1,13 @@
+ProcessHacker
+Находим браузер пользователя нажимаем 2 раза лкм:
+https://imgur.com/a/xLzjYLP
+После нажимаем filter дальше contains(case..) и вводим leet либо 1337
+https://imgur.com/a/W32Rblz
+Ищем заход в профиль
+https://imgur.com/a/uM4Azb1
+journal tool  	
+Ставим галку на delete
+Смотрим удалённые .exe ставим галочку Deleted и в поиске пишем .exe. Внимательно смотрим файлы
+Journal Trace
+Копируем название файла, который вы считаете «leet», и вставляем в Journal Trace.
+Обращаем внимание на время и причины событий. Data truncation, Close File delete, Close Rename: new name

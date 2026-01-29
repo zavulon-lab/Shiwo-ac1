@@ -212,10 +212,10 @@ class GiveawayEditModal(Modal, title="Настройка розыгрыша"):
             description=temp_data["description"],
             color=discord.Color.from_rgb(54, 57, 63)
         )
-        preview_embed.add_field(name="<:present:1464712819755978904> Приз", value=temp_data["prize"], inline=True)
-        preview_embed.add_field(name="<:present:1464712817671409806> Спонсор", value=temp_data["sponsor"], inline=True)
-        preview_embed.add_field(name="<:present:1464700439407890656> Окончание", value=temp_data["end_time"], inline=False)
-        preview_embed.add_field(name="<:present:1464712815968387072> Участников", value=str(len(temp_data["participants"])), inline=False)
+        preview_embed.add_field(name="<:present:1466443598055870730> Приз", value=temp_data["prize"], inline=True)
+        preview_embed.add_field(name="<:present:1466443596356915394> Спонсор", value=temp_data["sponsor"], inline=True)
+        preview_embed.add_field(name="<:present:1466443614002352240> Окончание", value=temp_data["end_time"], inline=False)
+        preview_embed.add_field(name="<:present:1466443593861431548> Участников", value=str(len(temp_data["participants"])), inline=False)
 
         view = GiveawayPreviewView(temp_data)
         await interaction.response.send_message(embed=preview_embed, view=view, ephemeral=True)
@@ -299,7 +299,7 @@ class GiveawayPreviewView(View):
         super().__init__(timeout=300)
         self.temp_data = temp_data
 
-    @discord.ui.button(label="Подтвердить", emoji="<:apr:1463263885887799533>", style=ButtonStyle.green)
+    @discord.ui.button(label="Подтвердить", emoji="<:apr:1466443618683457577>", style=ButtonStyle.green)
     async def confirm(self, interaction: Interaction, button: Button):
         try:
             old_data = load_giveaway_data()
@@ -354,7 +354,7 @@ class GiveawayPreviewView(View):
             else:
                 await interaction.followup.send(f"Ошибка: {e}", ephemeral=True)
 
-    @discord.ui.button(label="Отредактировать заново", emoji="<:edit:1464714103078780989>", style=ButtonStyle.grey)
+    @discord.ui.button(label="Отредактировать заново", emoji="<:edit:1466443592573648906>", style=ButtonStyle.grey)
     async def edit_again(self, interaction: Interaction, button: Button):
         await interaction.response.send_modal(GiveawayEditModal())
         self.stop()
@@ -464,14 +464,14 @@ class GiveawayAdminView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Редактировать розыгрыш", emoji="<:edit:1464714103078780989>", style=ButtonStyle.primary, custom_id="giveaway_edit")
+    @discord.ui.button(label="Редактировать розыгрыш", emoji="<:edit:1466443592573648906>", style=ButtonStyle.primary, custom_id="giveaway_edit")
     async def edit_giveaway(self, interaction: Interaction, button: Button):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("Только администраторы.", ephemeral=True)
             return
         await interaction.response.send_modal(GiveawayEditModal())
 
-    @discord.ui.button(label="Выбрать победителя", emoji="<:chz:1464714101711310860>", style=ButtonStyle.success, custom_id="giveaway_select_winner")
+    @discord.ui.button(label="Выбрать победителя", emoji="<:chz:1466443589843292386>", style=ButtonStyle.success, custom_id="giveaway_select_winner")
     async def select_winner(self, interaction: Interaction, button: Button):
         if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message("Только администраторы.", ephemeral=True)
@@ -594,17 +594,17 @@ async def update_user_giveaway_embed(guild: Guild):
             color=discord.Color.from_rgb(54, 57, 63) 
         )
         
-        embed.add_field(name="<:emoji1:1464712819755978904> Приз", value=f"**```{data.get('prize')}```**", inline=False)
+        embed.add_field(name="<:present:1466443598055870730> Приз", value=f"**```{data.get('prize')}```**", inline=False)
         
         info_value = (
-            f"<:emoji3:1464712817671409806> **Спонсор:** `{data.get('sponsor')}`\n"
-            f"<:emoji4:1464725149549985792> **Победителей:** `{data.get('winner_count', 1)}`"
+            f"<:emoji3:1466443596356915394> **Спонсор:** `{data.get('sponsor')}`\n"
+            f"<:emoji4:1466443588274487533> **Победителей:** `{data.get('winner_count', 1)}`"
         )
         embed.add_field(name="Информация", value=info_value, inline=True)
         
         embed.add_field(name="Статус", value=(
-            f"<:emoji7:1464712815968387072> **Участников:** `{len(data.get('participants', []))}`\n"
-            f"<:emoji8:1464700439407890656> **Завершение:** <t:{end_timestamp}:R>"
+            f"<:emoji7:1466443593861431548> **Участников:** `{len(data.get('participants', []))}`\n"
+            f"<:present:1466443614002352240> **Завершение:** <t:{end_timestamp}:R>"
         ), inline=True)
         
         embed.set_footer(text="Нажми на кнопку ниже, чтобы испытать удачу!")
@@ -627,13 +627,13 @@ async def update_user_giveaway_embed(guild: Guild):
         if data and data.get("winners"):
             mentions = [f"<@{wid}>" for wid in data["winners"]]
             embed.add_field(
-                name="<:emoji4:1464725149549985792> Победители",
+                name="<:emoji4:1466443588274487533> Победители",
                 value="\n".join(mentions) if mentions else "Не определены",
                 inline=False
             )
         else:
             embed.add_field(
-                name="<:emoji4:1464725149549985792> Победители",
+                name="<:emoji4:1466443588274487533> Победители",
                 value="Нет участников",
                 inline=False
             )

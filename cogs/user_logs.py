@@ -33,20 +33,20 @@ class UserLogsCog(commands.Cog):
 
         ts = int(time.time())
         embed = discord.Embed(
-            description=f"<:delete:1463115110980780198> **Сообщение удалено**",
+            description=f"<:delete:1466443655291342901> **Сообщение удалено**",
             color=discord.Color.red()
         )
         
         info_value = (
             f"Участник: {message.author.mention}\n"
-            f"<:link:1463122462995648662> login: {message.author.name}\n"
-            f"<:id_card:1463122452790902912> ID: {message.author.id}"
+            f"<:link:1466443659502289072> login: {message.author.name}\n"
+            f"<:id_card:1466443657191358506> ID: {message.author.id}"
         )
         embed.add_field(name="Информация", value=info_value, inline=True)
         
         channel_value = (
-            f"<:link:1464703359033282703> Канал: {message.channel.mention}\n"
-            f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            f"<:link:1466443659502289072> Канал: {message.channel.mention}\n"
+            f"<:present:1466443614002352240> Время: <t:{ts}:R>"
         )
         embed.add_field(name="Детали", value=channel_value, inline=True)
         embed.add_field(name="Содержимое", value=message.content or "Контент отсутствует", inline=False)
@@ -66,20 +66,20 @@ class UserLogsCog(commands.Cog):
 
         ts = int(time.time())
         embed = discord.Embed(
-            description=f"<:edit:1464714103078780989> **Сообщение изменено**",
+            description=f"<:edit:1466443592573648906> **Сообщение изменено**",
             color=discord.Color.from_rgb(54, 57, 63)
         )
         
         info_value = (
             f"Участник: {before.author.mention}\n"
-            f"<:link:1463122462995648662> login: {before.author.name}\n"
-            f"<:id_card:1463122452790902912> ID: {before.author.id}"
+            f"<:link:1466443659502289072> login: {before.author.name}\n"
+            f"<:id_card:1466443657191358506> ID: {before.author.id}"
         )
         embed.add_field(name="Информация", value=info_value, inline=True)
         
         channel_value = (
-            f"<:link:1463122462995648662> Канал: {before.channel.mention}\n"
-            f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            f"<:link:1466443659502289072> Канал: {before.channel.mention}\n"
+            f"<:present:1466443614002352240> Время: <t:{ts}:R>"
         )
         embed.add_field(name="Детали", value=channel_value, inline=True)
         embed.add_field(name="Было", value=before.content or "Пусто", inline=False)
@@ -100,22 +100,22 @@ class UserLogsCog(commands.Cog):
 
         info_value = (
             f"Участник: {member.mention}\n"
-            f"<:link:1463122462995648662> login: {member.name}\n"
-            f"<:id_card:1463122452790902912> ID: {member.id}"
+            f"<:link:1466443659502289072> login: {member.name}\n"
+            f"<:id_card:1466443657191358506> ID: {member.id}"
         )
 
         if before.channel is None:
-            embed.description = f"<:join:1463115113115680873> **Подключение к голосовому каналу**"
+            embed.description = f"<:join:1466443664040399076> **Подключение к голосовому каналу**"
             embed.color = discord.Color.green()
-            channel_info = f"Канал: {after.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            channel_info = f"Канал: {after.channel.name}\n<:present:1466443614002352240> Время: <t:{ts}:R>"
         elif after.channel is None:
-            embed.description = f"<:leave_icon:1463115110980780198> **Отключение от голосового канала**"
+            embed.description = f"<:leave_icon:1466443661842845759> **Отключение от голосового канала**"
             embed.color = discord.Color.red()
-            channel_info = f"Канал: {before.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            channel_info = f"Канал: {before.channel.name}\n<:present:1466443614002352240> Время: <t:{ts}:R>"
         else:
-            embed.description = f"<:arrow:1463115113115680873> **Перемещение между каналами**"
+            embed.description = f"<:arrow:1466443664040399076> **Перемещение между каналами**"
             embed.color = discord.Color.from_rgb(54, 57, 63)
-            channel_info = f"{before.channel.name} → {after.channel.name}\n<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            channel_info = f"{before.channel.name} → {after.channel.name}\n<:present:1466443614002352240> Время: <t:{ts}:R>"
 
         embed.add_field(name="Информация", value=info_value, inline=True)
         embed.add_field(name="Детали", value=channel_info, inline=True)
@@ -131,21 +131,21 @@ class UserLogsCog(commands.Cog):
         
         if before.display_name != after.display_name:
             embed = discord.Embed(
-                description=f"<:edit:1464714103078780989> **Изменение никнейма**",
+                description=f"<:edit:1466443592573648906> **Изменение никнейма**",
                 color=discord.Color.from_rgb(54, 57, 63)
             )
             
             info_value = (
                 f"Участник: {after.mention}\n"
-                f"<:link:1463122462995648662> login: {after.name}\n"
-                f"<:id_card:1463122452790902912> ID: {after.id}"
+                f"<:link:1466443659502289072> login: {after.name}\n"
+                f"<:id_card:1466443657191358506> ID: {after.id}"
             )
             embed.add_field(name="Информация", value=info_value, inline=True)
             
             change_value = (
                 f"**Было:** {before.display_name}\n"
                 f"**Стало:** {after.display_name}\n"
-                f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+                f"<:present:1466443614002352240> Время: <t:{ts}:R>"
             )
             embed.add_field(name="Изменения", value=change_value, inline=True)
             embed.set_thumbnail(url=after.display_avatar.url)
@@ -158,14 +158,14 @@ class UserLogsCog(commands.Cog):
 
             if added or removed:
                 embed = discord.Embed(
-                    description=f"<:roles:1465289174906175499> **Обновление ролей**",
+                    description=f"<:roles:1466443586600964270> **Обновление ролей**",
                     color=discord.Color.from_rgb(54, 57, 63)
                 )
                 
                 info_value = (
                     f"Участник: {after.mention}\n"
-                    f"<:link:1463122462995648662> login: {after.name}\n"
-                    f"<:id_card:1463122452790902912> ID: {after.id}"
+                    f"<:link:1466443659502289072> login: {after.name}\n"
+                    f"<:id_card:1466443657191358506> ID: {after.id}"
                 )
                 embed.add_field(name="Информация", value=info_value, inline=True)
                 moderator_value = "Не найден"
@@ -175,12 +175,12 @@ class UserLogsCog(commands.Cog):
                         break
 
                 embed.add_field(name="Модератор", value=moderator_value, inline=True)
-                embed.add_field(name="Время", value=f"<:clock:1464700439407890656> <t:{ts}:R>", inline=True)
+                embed.add_field(name="Время", value=f"<:present:1466443614002352240> <t:{ts}:R>", inline=True)
                 
                 if added:
-                    embed.add_field(name="<:plus:1465289172079214653> Выданы", value=", ".join(r.mention for r in added), inline=False)
+                    embed.add_field(name="<:plus:1466443582268244156> Выданы", value=", ".join(r.mention for r in added), inline=False)
                 if removed:
-                    embed.add_field(name="<:minus:1465289173685502083> Сняты", value=", ".join(r.mention for r in removed), inline=False)
+                    embed.add_field(name="<:minus:1466443584130650282> Сняты", value=", ".join(r.mention for r in removed), inline=False)
                 
                 embed.set_thumbnail(url=after.display_avatar.url)
                 embed.set_footer(text=f"User ID: {after.id}")
@@ -198,22 +198,22 @@ class UserLogsCog(commands.Cog):
         age_str = f"**{years} лет, {days} дней**" if years > 0 else f"**{days} дней**"
 
         embed = discord.Embed(
-            description=f"<:emoji:1463115113115680873> {member.mention} присоединился в Discord сервер",
+            description=f"<:emoji:1466443664040399076> {member.mention} присоединился в Discord сервер",
             color=discord.Color.green()
         )
 
         
         info_value = (
             f"Участник: {member.mention}\n"
-            f"<:link:1463122462995648662> login: {member.name}\n"
-            f"<:id_card:1463122452790902912> ID: {member.id}"
+            f"<:link:1466443659502289072> login: {member.name}\n"
+            f"<:id_card:1466443657191358506> ID: {member.id}"
         )
         embed.add_field(name="Информация", value=info_value, inline=True)
 
         
         embed.add_field(
             name="Возраст аккаунта", 
-            value=f"<:clock:1464700439407890656> {age_str}", 
+            value=f"<:present:1466443614002352240> {age_str}", 
             inline=True
         )
 
@@ -236,20 +236,20 @@ class UserLogsCog(commands.Cog):
         async for entry in member.guild.audit_logs(limit=5, action=discord.AuditLogAction.kick):
             if entry.target.id == member.id and (datetime.now(timezone.utc) - entry.created_at).total_seconds() < 5:
                 embed = discord.Embed(
-                    description=f"<:ban:1463115110980780198> **Исключение пользователя (Кик)**",
+                    description=f"<:ban:1466443661842845759> **Исключение пользователя (Кик)**",
                     color=discord.Color.red()
                 )
                 
                 info_value = (
                     f"Участник: {member.mention}\n"
-                    f"<:link:1463122462995648662> login: {member.name}\n"
-                    f"<:id_card:1463122452790902912> ID: {member.id}"
+                    f"<:link:1466443659502289072> login: {member.name}\n"
+                    f"<:id_card:1466443657191358506> ID: {member.id}"
                 )
                 embed.add_field(name="Информация", value=info_value, inline=True)
                 
                 moderator_value = (
                     f"Модератор: {entry.user.mention}\n"
-                    f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+                    f"<:present:1466443614002352240> Время: <t:{ts}:R>"
                 )
                 embed.add_field(name="Детали", value=moderator_value, inline=True)
                 
@@ -261,20 +261,20 @@ class UserLogsCog(commands.Cog):
 
         if not kicked:
             embed = discord.Embed(
-                description=f"<:leave_icon:1463115110980780198> {member.mention} вышел с Discord сервера",
+                description=f"<:leave_icon:1466443661842845759> {member.mention} вышел с Discord сервера",
                 color=discord.Color.red()
             )
             
             info_value = (
                 f"Участник: {member.mention}\n"
-                f"<:link:1463122462995648662> login: {member.name}\n"
-                f"<:id_card:1463122452790902912> ID: {member.id}"
+                f"<:link:1466443659502289072> login: {member.name}\n"
+                f"<:id_card:1466443657191358506> ID: {member.id}"
             )
             embed.add_field(name="Информация", value=info_value, inline=True)
             
             embed.add_field(
                 name="Возраст аккаунта", 
-                value=f"<:clock:1464700439407890656> {age_str}", 
+                value=f"<:present:1466443614002352240> {age_str}", 
                 inline=True
             )
             
@@ -288,20 +288,20 @@ class UserLogsCog(commands.Cog):
     async def on_guild_role_create(self, role: discord.Role):
         ts = int(time.time())
         embed = discord.Embed(
-            description=f"<:plus:1463115113115680873> **Создана роль**",
+            description=f"<:plus:1466443664040399076> **Создана роль**",
             color=discord.Color.green()
         )
         
         info_value = (
             f"**Название:** {role.name}\n"
-            f"<:id_card:1463122452790902912> ID: {role.id}\n"
-            f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            f"<:id_card:1466443657191358506> ID: {role.id}\n"
+            f"<:present:1466443614002352240> Время: <t:{ts}:R>"
         )
         embed.add_field(name="Информация", value=info_value, inline=False)
         
         perms = role.permissions
         embed.add_field(
-            name="<:shield:1463115113115680873> Полномочия",
+            name="<:shield:1466443664040399076> Полномочия",
             value=(
                 f"Администратор: {'✅' if perms.administrator else '❌'}\n"
                 f"Управление сервером: {'✅' if perms.manage_guild else '❌'}\n"
@@ -316,14 +316,14 @@ class UserLogsCog(commands.Cog):
     async def on_guild_role_delete(self, role: discord.Role):
         ts = int(time.time())
         embed = discord.Embed(
-            description=f"<:minus:1463115113115680873> **Удалена роль**",
+            description=f"<:minus:1466443664040399076> **Удалена роль**",
             color=discord.Color.red()
         )
         
         info_value = (
             f"**Название:** {role.name}\n"
-            f"<:id_card:1463122452790902912> ID: {role.id}\n"
-            f"<:clock:1464700439407890656> Время: <t:{ts}:R>"
+            f"<:id_card:1466443657191358506> ID: {role.id}\n"
+            f"<:present:1466443614002352240> Время: <t:{ts}:R>"
         )
         embed.add_field(name="Информация", value=info_value, inline=False)
         embed.set_footer(text=f"Role ID: {role.id}")
@@ -334,17 +334,17 @@ class UserLogsCog(commands.Cog):
     async def on_member_ban(self, guild: discord.Guild, user: discord.User):
         ts = int(time.time())
         embed = discord.Embed(
-            description=f"<:ban:1463115110980780198> **Блокировка пользователя**",
+            description=f"<:ban:1466443661842845759> **Блокировка пользователя**",
             color=discord.Color.dark_red()
         )
         
         info_value = (
             f"Участник: {user.mention}\n"
-            f"<:link:1463122462995648662> login: {user.name}\n"
-            f"<:id_card:1463122452790902912> ID: {user.id}"
+            f"<:link:1466443659502289072> login: {user.name}\n"
+            f"<:id_card:1466443657191358506> ID: {user.id}"
         )
         embed.add_field(name="Информация", value=info_value, inline=True)
-        embed.add_field(name="Время", value=f"<:clock:1464700439407890656> <t:{ts}:R>", inline=True)
+        embed.add_field(name="Время", value=f"<:present:1466443614002352240> <t:{ts}:R>", inline=True)
         
         embed.set_thumbnail(url=user.display_avatar.url)
         embed.set_footer(text=f"User ID: {user.id}")

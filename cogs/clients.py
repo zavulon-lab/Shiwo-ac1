@@ -634,7 +634,7 @@ class ClientsPanelCog(commands.Cog):
 
     async def send_new_panel(self, channel: discord.TextChannel):
         embed = discord.Embed(
-            title="<:ask:1464703355342291015> Возможно интересующие вас вопросы",
+            title="<:ask:1466443606435954758> Возможно интересующие вас вопросы",
             description=(
                 "Выбери интересующую тему ниже\n\n"
                 "Все решения проверены на актуальность и безопасность.\n"

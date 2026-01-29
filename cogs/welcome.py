@@ -27,7 +27,7 @@ class WelcomeCog(commands.Cog):
 
         embed = discord.Embed(
             description=(
-                "# <:hello:1464703360132448501> Приветствуем в Shiwo ac\n\n"
+                "# <:hello:1466443612614295727> Приветствуем в Shiwo ac\n\n"
                 f"{member.mention}, мы рады вас видеть!\n\n"
             ),
 
@@ -37,7 +37,7 @@ class WelcomeCog(commands.Cog):
 
         embed.set_thumbnail(url=member.display_avatar.url)
         embed.add_field(
-            name="<:rules:1464703359033282703> Правила сервера",
+            name="<:rules:1466443610646904934> Правила сервера",
             value=(
                 f"Пожалуйста прочитайте {rules_channel.mention}\n"
                 if rules_channel else
@@ -47,7 +47,7 @@ class WelcomeCog(commands.Cog):
         )
 
         embed.add_field(
-            name="<:price:1464703357410082836> Цены и оплата",
+            name="<:price:1466443608709398669> Цены и оплата",
             value=(
                 f"Посмотрите {purchase_channel.mention}\n"
                 "для того чтобы ознакомиться с нашим предложением."
@@ -58,7 +58,7 @@ class WelcomeCog(commands.Cog):
         )
 
         embed.add_field(
-            name="<:help:1464703355342291015> Нужна помощь?",
+            name="<:help:1466443606435954758> Нужна помощь?",
             value=(
                 f"Откройте тикет {ticket_channel.mention} и наша команда пошожет вам."
                 if ticket_channel else

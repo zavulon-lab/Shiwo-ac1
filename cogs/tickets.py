@@ -267,7 +267,7 @@ class AllStatsNavigationView(View):
         stats = stats_result["data"]
         
         embed = discord.Embed(
-            title="<:stats:1463129091451650069> Общий отчет по команде",
+            title="<:stats:1466443628573495456> Общий отчет по команде",
             color=discord.Color.blue(),
             timestamp=datetime.now(timezone.utc)
         )
@@ -281,8 +281,8 @@ class AllStatsNavigationView(View):
                 avg = data["avg_rating"]
                 total = data["total_tickets"]
                 embed.add_field(
-                    name=f"<:name:1464710641817223410> {name}",
-                    value=f"Рейтинг: **{avg:.2f}** <:star:1465302165756186634> | Тикетов: **{total}**",
+                    name=f"<:name:1466443601063186504> {name}",
+                    value=f"Рейтинг: **{avg:.2f}** <:star:1466443577814159361> | Тикетов: **{total}**",
                     inline=False
                 )
         
@@ -408,7 +408,7 @@ class ModeratorSelectView(View):
         embed.set_thumbnail(url=m_member.display_avatar.url)
         embed.add_field(
             name="Общий рейтинг",
-            value=f"**{stats_data['avg_rating']:.2f} / 5.0** <:star:1465302165756186634>",
+            value=f"**{stats_data['avg_rating']:.2f} / 5.0** <:star:1466443577814159361>",
             inline=True
         )
         embed.add_field(
@@ -419,7 +419,7 @@ class ModeratorSelectView(View):
         
         if ratings_result["data"]:
             rating_text = "\n".join([
-                f"**{r[1]}** - {r[0]}<:star:1465302165756186634>"
+                f"**{r[1]}** - {r[0]}<:star:1466443577814159361>"
                 for r in ratings_result["data"][:ITEMS_PER_RATINGS_PAGE]
             ])
             embed.add_field(name="Последние оценки", value=rating_text, inline=False)
@@ -477,7 +477,7 @@ class RatingsNavigationView(View):
         embed.set_thumbnail(url=m_member.display_avatar.url)
         embed.add_field(
             name="Общий рейтинг",
-            value=f"**{stats_data['avg_rating']:.2f} / 5.0** <:star:1465302165756186634>",
+            value=f"**{stats_data['avg_rating']:.2f} / 5.0** <:star:1466443577814159361>",
             inline=True
         )
         embed.add_field(
@@ -488,7 +488,7 @@ class RatingsNavigationView(View):
         
         if ratings_result["data"]:
             rating_text = "\n".join([
-                f"**{r[1]}** - {r[0]}<:star:1465302165756186634>"
+                f"**{r[1]}** - {r[0]}<:star:1466443577814159361>"
                 for r in ratings_result["data"]
             ])
             embed.add_field(name="Оценки", value=rating_text, inline=False)
@@ -529,11 +529,11 @@ class PostTicketActions(View):
         await interaction.response.send_message("Вот ваша полная история переписки:", file=file, ephemeral=True)
 
 
-    @discord.ui.button(label="Оцените модератора", style=ButtonStyle.grey, emoji="<:star:1465302165756186634>")
+    @discord.ui.button(label="Оцените модератора", style=ButtonStyle.grey, emoji="<:star:1466443577814159361>")
     async def rate_service(self, interaction: Interaction, button: Button):
         rate_view = View()
         for i in range(1, 6):
-            star = PartialEmoji.from_str("<:star:1465302165756186634>")
+            star = PartialEmoji.from_str("<:star:1466443577814159361>")
             btn = Button(label=f"{i}", emoji=star, style=ButtonStyle.blurple)
             
             async def create_callback(rating):
@@ -546,7 +546,7 @@ class PostTicketActions(View):
                         self.ticket_name
                     )
                     
-                    await inter.response.send_message(f"Спасибо за оценку {rating}<:star:1465302165756186634>!", ephemeral=True)
+                    await inter.response.send_message(f"Спасибо за оценку {rating}<:star:1466443577814159361>!", ephemeral=True)
                 
                 return callback
 
@@ -572,7 +572,7 @@ class AdminStatsView(discord.ui.View):
         label="Вся статистика",
         style=discord.ButtonStyle.green,
         custom_id="stats_all",
-        emoji="<:stats:1463129091451650069>"
+        emoji="<:stats:1466443628573495456>"
     )
     async def show_all_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
         stats_result = get_all_moderator_stats(page=1, limit=ITEMS_PER_PAGE)
@@ -582,7 +582,7 @@ class AdminStatsView(discord.ui.View):
             return await interaction.response.send_message("Статистика пуста.", ephemeral=True)
         
         embed = discord.Embed(
-            title="<:stats:1463129091451650069> Общий отчет по команде",
+            title="<:stats:1466443628573495456> Общий отчет по команде",
             color=discord.Color.blue(),
             timestamp=datetime.now(timezone.utc)
         )
@@ -593,8 +593,8 @@ class AdminStatsView(discord.ui.View):
             avg = data["avg_rating"]
             total = data["total_tickets"]
             embed.add_field(
-                name=f"<:name:1464710641817223410> {name}",
-                value=f"Рейтинг: **{avg:.2f}** <:star:1465302165756186634> | Тикетов: **{total}**",
+                name=f"<:name:1466443601063186504> {name}",
+                value=f"Рейтинг: **{avg:.2f}** <:star:1466443577814159361> | Тикетов: **{total}**",
                 inline=False
             )
         
@@ -612,7 +612,7 @@ class AdminStatsView(discord.ui.View):
         label="По модераторам",
         style=discord.ButtonStyle.blurple,
         custom_id="stats_by_mod",
-        emoji="<:stats:1464710641817223410>"
+        emoji="<:stats:1466443601063186504>"
     )
     async def show_mod_select(self, interaction: discord.Interaction, button: discord.ui.Button):
         stats_result = get_all_moderator_stats(page=1, limit=ITEMS_PER_PAGE)
@@ -649,7 +649,7 @@ class AdminStatsView(discord.ui.View):
         label="Сброс БД",
         style=discord.ButtonStyle.danger,
         custom_id="stats_reset_secure",
-        emoji="<:error:1463122517102297214>"
+        emoji="<:error:1466443631496794216>"
     )
     async def secure_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not interaction.user.guild_permissions.administrator:
@@ -742,7 +742,7 @@ class TicketCloseView(View):
         # Отправка уведомления пользователю
         if self.opener:
             user_embed = discord.Embed(
-                description=f"## <:emoji_name:1463153492595310644> Закрытый тикет",
+                description=f"## <:emoji_name:1466443622491750421> Закрытый тикет",
                 color=discord.Color.from_rgb(54, 57, 63),
                 timestamp=datetime.now(timezone.utc)
             )
@@ -819,7 +819,7 @@ class CloseReasonModal(Modal, title="Укажите причину закрыт�
 
         if opener:
             user_embed = discord.Embed(
-                description=f"## <:emoji_name:1463153492595310644> Тикет закрыт", 
+                description=f"## <:emoji_name:1466443622491750421> Тикет закрыт", 
                 color=discord.Color.from_rgb(54, 57, 63), 
                 timestamp=datetime.now(timezone.utc)
             )
@@ -1007,14 +1007,14 @@ class TicketsCog(commands.Cog):
             
             embed = discord.Embed(
                 description=(
-                    f"## <:emoji_name:1463153492595310644> | Shiwo Support\n"
+                    f"## <:emoji_name:1466443622491750421> | Shiwo Support\n"
                     f"**Создайте тикет**\n"
                     f"**Нужна помощь?** Выберите категорию."
                 ),
                 color=discord.Color.from_rgb(54, 57, 63)
             )
             embed.add_field(
-                name="<:emoji_name:1463153494373437520> Прежде чем создавать тикет:",
+                name="<:emoji_name:1466443624110755894> Прежде чем создавать тикет:",
                 value="• Проверьте нашу [документацию](https://shiwo-ac.com/au/privacy)\n• [Поищите существующие решения](https://discord.com/channels/1450568583930318930/1457114969765187767)",
                 inline=False
             )
@@ -1034,13 +1034,13 @@ class TicketsCog(commands.Cog):
         try:
             await channel.purge(limit=10)
             embed = discord.Embed(
-                title="<:sheld:1464708871703761061> Админ-Панель Поддержки",
+                title="<:sheld:1466443603734827089> Админ-Панель Поддержки",
                 description=(
                     "Ниже представлены инструменты для контроля работы модераторов.\n\n"
-                    "<:sheld:1463129091451650069> **Вся статистика**: Общий рейтинг с пагинацией.\n"
-                    "<:sheld:1464710641817223410> **По модераторам**: Личный отчет с поиском.\n"
-                    "<:export:1465301465080795190>**Экспорт БД**: Скачать базу данных.\n"
-                    "<:error:1463122517102297214> **Сброс БД**: Очистить данные."
+                    "<:sheld:1466443628573495456> **Вся статистика**: Общий рейтинг с пагинацией.\n"
+                    "<:sheld:1466443601063186504> **По модераторам**: Личный отчет с поиском.\n"
+                    "<:export:1466443579516784732>**Экспорт БД**: Скачать базу данных.\n"
+                    "<:error:1466443631496794216> **Сброс БД**: Очистить данные."
                 ),
                 color=discord.Color.from_rgb(54, 57, 63)
             )

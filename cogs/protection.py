@@ -183,14 +183,14 @@ def remove_from_whitelist(user_id):
 
 
 EVENT_EMOJIS = {
-    "channel_delete": "<:emoji_name:1463122455961927711>",
-    "channel_create": "<:plus_icon:1463122449616081077>",
-    "webhook_create": "<:webhook_icon:1463122459510309056>",
-    "webhook_send": "<:send_icon:1463122460353237013>",
-    "ban_member": "<:ban_icon:1463122461750198323>",
-    "kick_member": "<:kick_icon:1463122451704713246>",
-    "everyone_ping": "<:everyone_icon:1463122447791296648>",
-    "here_ping": "<:here_icon:1463122457824067755>"
+    "channel_delete": "<:emoji_name:1466443655291342901>",
+    "channel_create": "<:plus_icon:1466443652644733131>",
+    "webhook_create": "<:webhook_icon:1466443650878931047>",
+    "webhook_send": "<:send_icon:1466443648240455763>",
+    "ban_member": "<:ban_icon:1466443646650945661>",
+    "kick_member": "<:kick_icon:1466443643635109940>",
+    "everyone_ping": "<:everyone_icon:1466443641701793915>",
+    "here_ping": "<:here_icon:1466443639398989996>"
 }
 
 ACTION_NAMES = {
@@ -203,11 +203,11 @@ ACTION_NAMES = {
 }
 
 ACTION_EMOJIS = {
-    "ban": "<:emoji_name:1463263884810125527>",
-    "kick": "<:emoji_name:1463263884810125527>",
-    "warn": "<:emoji_name:1463263883056644181>",
-    "tempban": "<:emoji_name:1463263883056644181>",
-    "none": "<:emoji_name:1463263885887799533>"
+    "ban": "<:emoji_name:1466443637746569549>",
+    "kick": "<:emoji_name:1466443637746569549>",
+    "warn": "<:emoji_name:1466443615780999472>",
+    "tempban": "<:emoji_name:1466443615780999472>",
+    "none": "<:emoji_name:1466443618683457577>"
 }
 
 config = load_config()
@@ -262,11 +262,11 @@ class ActionSelect(View):
         select = Select(
             placeholder="Выберите действие",
             options=[
-                SelectOption(label="Бан", value="ban", emoji="<:emoji_name:1463263884810125527>"),
-                SelectOption(label="Кик", value="kick", emoji="<:emoji_name:1463263884810125527>"),
-                SelectOption(label="Предупреждение", value="warn", emoji="<:emoji_name:1463263883056644181>"),
-                SelectOption(label="Временный бан", value="tempban", emoji="<:emoji_name:1463263883056644181>"),
-                SelectOption(label="Без действий", value="none", emoji="<:emoji_name:1463263885887799533>")
+                SelectOption(label="Бан", value="ban", emoji="<:emoji_name:1466443637746569549>"),
+                SelectOption(label="Кик", value="kick", emoji="<:emoji_name:1466443637746569549>"),
+                SelectOption(label="Предупреждение", value="warn", emoji="<:emoji_name:1466443615780999472>"),
+                SelectOption(label="Временный бан", value="tempban", emoji="<:emoji_name:1466443615780999472>"),
+                SelectOption(label="Без действий", value="none", emoji="<:emoji_name:1466443618683457577>")
             ]
         )
         select.callback = self.select_callback
@@ -356,49 +356,49 @@ class ProtectionConfigView(View):
                 label="Удаление канала", 
                 value="channel_delete",
                 description="Массовое удаление текстовых каналов",
-                emoji="<:emoji_name:1463122455961927711>"
+                emoji="<:emoji_name:1466443655291342901>"
             ),
             discord.SelectOption(
                 label="Создание канала", 
                 value="channel_create",
                 description="Массовое создание текстовых каналов ",
-                emoji="<:plus_icon:1463122449616081077>"
+                emoji="<:plus_icon:1466443652644733131>"
             ),
             discord.SelectOption(
                 label="Создание вебхука", 
                 value="webhook_create",
                 description="Создание интеграции & Вебхука",
-                emoji="<:webhook_icon:1463122459510309056>"
+                emoji="<:webhook_icon:1466443650878931047>"
             ),
             discord.SelectOption(
                 label="Отправка от вебхука", 
                 value="webhook_send",
                 description="Взаимодействие с URL вебхука",
-                emoji="<:send_icon:1463122460353237013>"
+                emoji="<:send_icon:1466443648240455763>"
             ),
             discord.SelectOption(
                 label="Бан участника", 
                 value="ban_member",
                 description="Реакция на массовые блокировки участников",
-                emoji="<:ban_icon:1463122461750198323>"
+                emoji="<:ban_icon:1466443646650945661>"
             ),
             discord.SelectOption(
                 label="Кик участника", 
                 value="kick_member",
                 description="Защита от массовых исключений участников",
-                emoji="<:kick_icon:1463122451704713246>"
+                emoji="<:kick_icon:1466443643635109940>"
             ),
             discord.SelectOption(
                 label="Пинг @everyone", 
                 value="everyone_ping",
                 description="Ограничение упоминаний роли @everyone",
-                emoji="<:everyone_icon:1463122447791296648>"
+                emoji="<:everyone_icon:1466443641701793915>"
             ),
             discord.SelectOption(
                 label="Пинг @here", 
                 value="here_ping",
                 description="Ограничение упоминаний роли @here",
-                emoji="<:here_icon:1463122457824067755>"
+                emoji="<:here_icon:1466443639398989996>"
             )
         ]
     )
@@ -595,7 +595,7 @@ class ActionConfigModal(Modal):
             description=(
                 f"Событие: **{EVENTS.get(self.event_key)}**\n"
                 f"Наказание: `{ACTION_NAMES.get(self.action)}`\n"
-                f"Лимит действий: <:limit_icon:1463143604406190174> `{limit_val}`" + time_text
+                f"Лимит действий: <:limit_icon:1466443627206152486> `{limit_val}`" + time_text
             ),
             color=discord.Color.from_rgb(54, 57, 63)
         )
