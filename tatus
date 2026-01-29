@@ -1,0 +1,147 @@
+[1mdiff --git a/cogs/protection.py b/cogs/protection.py[m
+[1mindex 8de4a7f..c73c06d 100644[m
+[1m--- a/cogs/protection.py[m
+[1m+++ b/cogs/protection.py[m
+[36m@@ -4,7 +4,6 @@[m [mfrom datetime import datetime, timezone, timedelta[m
+ from discord.ext import commands[m
+ from discord.ui import View, Button, Select, Modal, TextInput[m
+ from discord import Interaction, ButtonStyle, SelectOption, AuditLogEntry, Color[m
+[31m-from datetime import datetime, timezone[m
+ import sqlite3[m
+ from pathlib import Path[m
+ import asyncio[m
+[36m@@ -14,7 +13,6 @@[m [mfrom config import PROTECTION_ADMIN_CHANNEL_ID, PROTECTION_LOG_CHANNEL_ID, SUPPO[m
+ DB_PATH = Path("protection.db")[m
+ [m
+ [m
+[31m-[m
+ def init_protection_db():[m
+     conn = sqlite3.connect(DB_PATH)[m
+     cursor = conn.cursor()[m
+[36m@@ -26,7 +24,6 @@[m [mdef init_protection_db():[m
+         )[m
+     ''')[m
+     [m
+[31m-   [m
+     cursor.execute('''[m
+         CREATE TABLE IF NOT EXISTS whitelist ([m
+             user_id INTEGER PRIMARY KEY[m
+[36m@@ -46,7 +43,6 @@[m [mdef init_protection_db():[m
+ [m
+ [m
+ def load_config():[m
+[31m-    [m
+     init_protection_db()[m
+     [m
+     conn = sqlite3.connect(DB_PATH)[m
+[36m@@ -80,7 +76,6 @@[m [mdef load_config():[m
+ [m
+ [m
+ def save_config(config):[m
+[31m-    [m
+     import json[m
+     init_protection_db()[m
+     [m
+[36m@@ -97,7 +92,6 @@[m [mdef save_config(config):[m
+ [m
+ [m
+ def load_violations():[m
+[31m-    [m
+     init_protection_db()[m
+     [m
+     conn = sqlite3.connect(DB_PATH)[m
+[36m@@ -119,7 +113,6 @@[m [mdef load_violations():[m
+ [m
+ [m
+ def save_violations(data):[m
+[31m-   [m
+     import json[m
+     init_protection_db()[m
+     [m
+[36m@@ -143,7 +136,6 @@[m [mdef save_violations(data):[m
+ [m
+ [m
+ def load_whitelist():[m
+[31m-    [m
+     init_protection_db()[m
+     [m
+     conn = sqlite3.connect(DB_PATH)[m
+[36m@@ -157,7 +149,6 @@[m [mdef load_whitelist():[m
+ [m
+ [m
+ def add_to_whitelist(user_id):[m
+[31m-   [m
+     init_protection_db()[m
+     [m
+     conn = sqlite3.connect(DB_PATH)[m
+[36m@@ -170,7 +161,6 @@[m [mdef add_to_whitelist(user_id):[m
+ [m
+ [m
+ def remove_from_whitelist(user_id):[m
+[31m-   [m
+     init_protection_db()[m
+     [m
+     conn = sqlite3.connect(DB_PATH)[m
+[36m@@ -403,6 +393,10 @@[m [mclass ProtectionConfigView(View):[m
+         ][m
+     )[m
+     async def event_select(self, interaction: discord.Interaction, select: discord.ui.Select):[m
+[32m+[m[32m        if interaction.user != interaction.guild.owner:[m
+[32m+[m[32m            await interaction.response.send_message("Только владелец сервера может настраивать защиту.", ephemeral=True)[m
+[32m+[m[32m            return[m
+[32m+[m[41m        [m
+         event_key = select.values[0][m
+         view = ActionSelect(event_key)[m
+         await interaction.response.send_message([m
+[36m@@ -422,11 +416,10 @@[m [mclass ProtectionConfigView(View):[m
+         if len(whitelist) > 20:[m
+             text += f"\n... и ещё {len(whitelist) - 20}"[m
+         embed = discord.Embed(title="Вайтлист защиты", description=text, color=discord.Color.from_rgb(54, 57, 63))[m
+[31m-        view = WhitelistView(interaction.guild.owner.id) [m
+[32m+[m[32m        view = WhitelistView(interaction.guild.owner.id)[m
+         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)[m
+ [m
+ [m
+[31m-[m
+ class WhitelistView(View):[m
+     def __init__(self, owner_id):[m
+         super().__init__(timeout=300)[m
+[36m@@ -447,7 +440,6 @@[m [mclass WhitelistView(View):[m
+         await interaction.response.send_modal(RemoveWhitelistModal())[m
+ [m
+ [m
+[31m-[m
+ async def update_protection_panel(guild: discord.Guild):[m
+     channel = guild.get_channel(PROTECTION_ADMIN_CHANNEL_ID)[m
+     if not channel:[m
+[36m@@ -613,9 +605,7 @@[m [mclass ProtectionCog(commands.Cog):[m
+         init_protection_db()[m
+ [m
+     async def setup_protection_panel(self):[m
+[31m-        [m
+         await self.bot.wait_until_ready()[m
+[31m-        [m
+         self.bot.add_view(ProtectionConfigView())[m
+ [m
+         for guild in self.bot.guilds:[m
+[36m@@ -768,7 +758,6 @@[m [mclass ProtectionCog(commands.Cog):[m
+             await self.handle_action(message=message)[m
+             return[m
+         [m
+[31m-        [m
+         if "discord.gg/" in message.content or "discord.com/invite" in message.content:[m
+             try:[m
+                 await message.delete()[m
+[36m@@ -802,10 +791,9 @@[m [mclass ProtectionCog(commands.Cog):[m
+                 pass[m
+             return[m
+ [m
+[31m-        [m
+         await self.handle_action(message=message)[m
+ [m
+ [m
+ async def setup(bot):[m
+     cog = ProtectionCog(bot)[m
+[31m-    await bot.add_cog(cog)[m
+\ No newline at end of file[m
+[32m+[m[32m    await bot.add_cog(cog)[m

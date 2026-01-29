@@ -4,7 +4,6 @@ from datetime import datetime, timezone, timedelta
 from discord.ext import commands
 from discord.ui import View, Button, Select, Modal, TextInput
 from discord import Interaction, ButtonStyle, SelectOption, AuditLogEntry, Color
-from datetime import datetime, timezone
 import sqlite3
 from pathlib import Path
 import asyncio
@@ -12,7 +11,6 @@ import asyncio
 from config import PROTECTION_ADMIN_CHANNEL_ID, PROTECTION_LOG_CHANNEL_ID, SUPPORT_ROLE_ID
 
 DB_PATH = Path("protection.db")
-
 
 
 def init_protection_db():
@@ -26,7 +24,6 @@ def init_protection_db():
         )
     ''')
     
-   
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS whitelist (
             user_id INTEGER PRIMARY KEY
@@ -46,7 +43,6 @@ def init_protection_db():
 
 
 def load_config():
-    
     init_protection_db()
     
     conn = sqlite3.connect(DB_PATH)
@@ -80,7 +76,6 @@ def load_config():
 
 
 def save_config(config):
-    
     import json
     init_protection_db()
     
@@ -97,7 +92,6 @@ def save_config(config):
 
 
 def load_violations():
-    
     init_protection_db()
     
     conn = sqlite3.connect(DB_PATH)
@@ -119,7 +113,6 @@ def load_violations():
 
 
 def save_violations(data):
-   
     import json
     init_protection_db()
     
@@ -143,7 +136,6 @@ def save_violations(data):
 
 
 def load_whitelist():
-    
     init_protection_db()
     
     conn = sqlite3.connect(DB_PATH)
@@ -157,7 +149,6 @@ def load_whitelist():
 
 
 def add_to_whitelist(user_id):
-   
     init_protection_db()
     
     conn = sqlite3.connect(DB_PATH)
@@ -170,7 +161,6 @@ def add_to_whitelist(user_id):
 
 
 def remove_from_whitelist(user_id):
-   
     init_protection_db()
     
     conn = sqlite3.connect(DB_PATH)
@@ -403,6 +393,10 @@ class ProtectionConfigView(View):
         ]
     )
     async def event_select(self, interaction: discord.Interaction, select: discord.ui.Select):
+        if interaction.user != interaction.guild.owner:
+            await interaction.response.send_message("Только владелец сервера может настраивать защиту.", ephemeral=True)
+            return
+        
         event_key = select.values[0]
         view = ActionSelect(event_key)
         await interaction.response.send_message(
@@ -422,9 +416,8 @@ class ProtectionConfigView(View):
         if len(whitelist) > 20:
             text += f"\n... и ещё {len(whitelist) - 20}"
         embed = discord.Embed(title="Вайтлист защиты", description=text, color=discord.Color.from_rgb(54, 57, 63))
-        view = WhitelistView(interaction.guild.owner.id) 
+        view = WhitelistView(interaction.guild.owner.id)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
 
 
 class WhitelistView(View):
@@ -445,7 +438,6 @@ class WhitelistView(View):
             await interaction.response.send_message("Только владелец сервера может это делать.", ephemeral=True)
             return
         await interaction.response.send_modal(RemoveWhitelistModal())
-
 
 
 async def update_protection_panel(guild: discord.Guild):
@@ -613,9 +605,7 @@ class ProtectionCog(commands.Cog):
         init_protection_db()
 
     async def setup_protection_panel(self):
-        
         await self.bot.wait_until_ready()
-        
         self.bot.add_view(ProtectionConfigView())
 
         for guild in self.bot.guilds:
@@ -768,7 +758,6 @@ class ProtectionCog(commands.Cog):
             await self.handle_action(message=message)
             return
         
-        
         if "discord.gg/" in message.content or "discord.com/invite" in message.content:
             try:
                 await message.delete()
@@ -802,7 +791,6 @@ class ProtectionCog(commands.Cog):
                 pass
             return
 
-        
         await self.handle_action(message=message)
 
 
