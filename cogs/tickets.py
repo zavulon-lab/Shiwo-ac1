@@ -849,6 +849,7 @@ class TicketSelectView(View):
         custom_id="ticket_select_menu",
         options=[
             SelectOption(label="Подержка", description="У вас есть какие-то вопросы?", emoji="✉️"),
+            SelectOption(label="Оптимизация ПК", description="Запрос на оптимизацию вашего ПК.", emoji="🖥️"),
             SelectOption(label="Покупка", description="Запрос на покупку подписки.", emoji="🛒"),
             SelectOption(label="Партнёрство", description="Запрос на портнёрство.", emoji="🤝"),
             SelectOption(label="Черный список", description="Запрос на занесение в черный список.", emoji="🚫"),
@@ -861,6 +862,7 @@ class TicketSelectView(View):
         try:
             channel_names = {
                 "Подержка": "support",
+                "Оптимизация ПК": "support",
                 "Покупка": "purchase",
                 "Партнёрство": "partnership",
                 "Черный список": "blacklist",
