@@ -848,11 +848,31 @@ class TicketSelectView(View):
         placeholder="Выберите тип запроса",
         custom_id="ticket_select_menu",
         options=[
-            SelectOption(label="Подержка", description="У вас есть какие-то вопросы?", emoji="✉️"),
-            SelectOption(label="Оптимизация ПК", description="Запрос на оптимизацию вашего ПК.", emoji="🖥️"),
-            SelectOption(label="Покупка", description="Запрос на покупку подписки.", emoji="🛒"),
-            SelectOption(label="Партнёрство", description="Запрос на портнёрство.", emoji="🤝"),
-            SelectOption(label="Черный список", description="Запрос на занесение в черный список.", emoji="🚫"),
+            SelectOption(
+                label="Поддержка",
+                description="У вас есть какие-то вопросы?",
+                emoji="✉️"
+            ),
+            SelectOption(
+                label="Оптимизация ПК",
+                description="Запрос на оптимизацию вашего ПК.",
+                emoji="🖥️"
+            ),
+            SelectOption(
+                label="Покупка",
+                description="Запрос на покупку подписки.",
+                emoji="🛒"
+            ),
+            SelectOption(
+                label="Партнёрство",
+                description="Запрос на партнёрство.",
+                emoji="🤝"
+            ),
+            SelectOption(
+                label="Черный список",
+                description="Запрос на занесение в черный список.",
+                emoji="🚫"
+            ),
         ]
     )
     async def select_callback(self, interaction: Interaction, select: Select):
@@ -860,9 +880,10 @@ class TicketSelectView(View):
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         try:
+            # Префиксы каналов для разных типов тикетов
             channel_names = {
-                "Подержка": "support",
-                "Оптимизация ПК": "support",
+                "Поддержка": "support",
+                "Оптимизация ПК": "optimize-pc",  # отдельный префикс
                 "Покупка": "purchase",
                 "Партнёрство": "partnership",
                 "Черный список": "blacklist",
@@ -871,16 +892,27 @@ class TicketSelectView(View):
 
             guild = interaction.guild
             category = guild.get_channel(TICKET_CATEGORY_ID)
-            
-            if not category or not isinstance(category, discord.CategoryChannel):
-                return await interaction.followup.send("Ошибка конфигурации: категория тикетов не найдена.", ephemeral=True)
+
+            if not category or not isinstance(category, CategoryChannel):
+                return await interaction.followup.send(
+                    "Ошибка конфигурации: категория тикетов не найдена.",
+                    ephemeral=True
+                )
 
             if not guild.me.guild_permissions.manage_channels:
-                return await interaction.followup.send("У бота недостаточно прав для создания каналов.", ephemeral=True)
+                return await interaction.followup.send(
+                    "У бота недостаточно прав для создания каналов.",
+                    ephemeral=True
+                )
 
+            # Проверка на уже открытый тикет такого же типа у пользователя
             existing_ticket = None
             for channel in category.text_channels:
-                if channel.topic and f"user_id={interaction.user.id}" in channel.topic and f"type={choice}" in channel.topic:
+                if (
+                    channel.topic
+                    and f"user_id={interaction.user.id}" in channel.topic
+                    and f"type={choice}" in channel.topic
+                ):
                     existing_ticket = channel
                     break
 
@@ -892,9 +924,22 @@ class TicketSelectView(View):
 
             overwrites = {
                 guild.default_role: PermissionOverwrite(view_channel=False),
-                interaction.user: PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True, read_message_history=True),
-                guild.get_role(SUPPORT_ROLE_ID): PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-                guild.me: PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
+                interaction.user: PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    attach_files=True,
+                    read_message_history=True
+                ),
+                guild.get_role(SUPPORT_ROLE_ID): PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    read_message_history=True
+                ),
+                guild.me: PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    manage_channels=True
+                )
             }
 
             ticket_channel = await category.create_text_channel(
@@ -904,6 +949,8 @@ class TicketSelectView(View):
             )
 
             opened_at = int(time.time())
+
+            # Текст можно кастомизировать под тип, пока один общий
             ticket_embed = discord.Embed(
                 title="Тикет поддержки открыт",
                 description=(
@@ -912,13 +959,18 @@ class TicketSelectView(View):
                     "Пожалуйста, опишите вашу проблему подробно. Наша команда ответит вам в ближайшее время.\n\n"
                     "**Совет:** Прикрепите скриншоты или логи ошибок."
                 ),
-                color=discord.Color.from_rgb(54, 57, 63),
+                color=Color.from_rgb(54, 57, 63),
                 timestamp=datetime.now(timezone.utc)
             )
-            ticket_embed.set_author(name=f"Тикет: {interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+
+            ticket_embed.set_author(
+                name=f"Тикет: {interaction.user.display_name}",
+                icon_url=interaction.user.display_avatar.url
+            )
             ticket_embed.set_footer(text="Shiwo Support System")
 
             close_view = TicketCloseView(ticket_channel, interaction.user)
+
             await ticket_channel.send(
                 content=f"{interaction.user.mention} | <@&{SUPPORT_ROLE_ID}>",
                 embed=ticket_embed,
@@ -929,8 +981,12 @@ class TicketSelectView(View):
             if log_channel:
                 log_embed = discord.Embed(
                     title="Новый тикет открыт",
-                    description=f"**Тип:** {choice}\n**Пользователь:** {interaction.user.mention}\n**Канал:** {ticket_channel.mention}",
-                    color=discord.Color.green(),
+                    description=(
+                        f"**Тип:** {choice}\n"
+                        f"**Пользователь:** {interaction.user.mention}\n"
+                        f"**Канал:** {ticket_channel.mention}"
+                    ),
+                    color=Color.green(),
                     timestamp=datetime.now(timezone.utc)
                 )
                 await log_channel.send(embed=log_embed)
@@ -938,16 +994,22 @@ class TicketSelectView(View):
             confirm_embed = discord.Embed(
                 title="Тикет создан!",
                 description=f"Ваш тикет был успешно создан: {ticket_channel.mention}",
-                color=discord.Color.from_rgb(54, 57, 63)
+                color=Color.from_rgb(54, 57, 63)
             )
             await interaction.followup.send(embed=confirm_embed, ephemeral=True)
+
+            # Обновляем панель, чтобы селект остался рабочим
             await interaction.message.edit(view=TicketSelectView())
 
         except Exception as e:
             print(f"[КРИТИЧЕСКАЯ ОШИБКА ТИКЕТОВ]: {e}")
             import traceback
-            traceback.print_exc() 
-            await interaction.followup.send("Произошла внутренняя ошибка при создании тикета.", ephemeral=True)
+            traceback.print_exc()
+            await interaction.followup.send(
+                "Произошла внутренняя ошибка при создании тикета.",
+                ephemeral=True
+            )
+
 
 
 async def generate_html_transcript(channel: TextChannel):
